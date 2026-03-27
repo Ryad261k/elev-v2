@@ -2314,3 +2314,99 @@ select {
   display: flex;
   gap: 10px;
 }
+
+/* =============================================
+   BARCODE SCANNER
+   ============================================= */
+#barcode-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 260;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#barcode-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+.barcode-box {
+  background: var(--bg-card);
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  padding: 16px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 85dvh;
+}
+.barcode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.barcode-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cream);
+}
+.barcode-viewport {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: 50dvh;
+}
+#barcode-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.barcode-reticle {
+  position: absolute;
+  inset: 22% 12%;
+  border: 2px solid var(--accent, #7AB893);
+  border-radius: 8px;
+  box-shadow: 0 0 0 4000px rgba(0,0,0,0.45);
+}
+.barcode-reticle::before,
+.barcode-reticle::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: var(--accent, #7AB893);
+  border-style: solid;
+}
+.barcode-reticle::before {
+  top: -2px; left: -2px;
+  border-width: 3px 0 0 3px;
+  border-radius: 4px 0 0 0;
+}
+.barcode-reticle::after {
+  bottom: -2px; right: -2px;
+  border-width: 0 3px 3px 0;
+  border-radius: 0 0 4px 0;
+}
+.barcode-status {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--cream);
+  padding: 8px 16px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+}
+.barcode-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.barcode-fallback-label {
+  font-size: 0.8125rem;
+  color: var(--cream-dim);
+}

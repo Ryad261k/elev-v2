@@ -80,6 +80,9 @@ window.FoodPicker = (() => {
         <button class="food-quick-tile" id="qt-recipe">
           <span class="food-quick-tile-icon">👨‍🍳</span><span>Recettes</span>
         </button>
+        <button class="food-quick-tile" id="qt-scan">
+          <span class="food-quick-tile-icon">📷</span><span>Scanner</span>
+        </button>
       </div>
       <div class="food-tabs">
         <button class="food-tab-btn active" data-tab="frequent">Fréquents</button>
@@ -96,6 +99,9 @@ window.FoodPicker = (() => {
     });
     body.querySelector('#qt-custom')?.addEventListener('click', showCustomFoodView);
     body.querySelector('#qt-recipe')?.addEventListener('click',  showRecipeView);
+    body.querySelector('#qt-scan')?.addEventListener('click', () => {
+      if (window.BarcodeScanner) BarcodeScanner.scan(food => showFoodDetail(food));
+    });
     body.querySelectorAll('.food-tab-btn').forEach(btn =>
       btn.addEventListener('click', () => {
         activeTab = btn.dataset.tab;

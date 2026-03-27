@@ -69,6 +69,7 @@ const App = (() => {
     showScreen('app');
     bindNavbar();
     renderHomeDate();
+    if (window.HomeTab) HomeTab.init();
     if (window.Coach) Coach.init();
     if (window.Onboarding && !Onboarding.isComplete()) Onboarding.show();
   }

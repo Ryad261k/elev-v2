@@ -96,6 +96,10 @@ window.Nutrition = (() => {
     set('nutrition-protein', tot.protein); bar('nutrition-protein-bar', tot.protein, GOALS.protein);
     set('nutrition-carbs',   tot.carbs);   bar('nutrition-carbs-bar',   tot.carbs,   GOALS.carbs);
     set('nutrition-fat',     tot.fat);     bar('nutrition-fat-bar',     tot.fat,     GOALS.fat);
+    // Objectifs dynamiques
+    set('goal-protein', GOALS.protein);
+    set('goal-carbs',   GOALS.carbs);
+    set('goal-fat',     GOALS.fat);
   }
 
   /* ── Catégories (Yazio style) ──────────────── */
@@ -218,6 +222,54 @@ window.Nutrition = (() => {
       if (S.date < todayStr()) { S.date = shiftDate(1); renderDay(); renderWater(); }
     });
     document.getElementById('btn-open-recipes')?.addEventListener('click', () => Recipes.openManager());
+    document.getElementById('btn-edit-goals')?.addEventListener('click', openGoalsModal);
+  }
+
+  /* ── Modal objectifs ────────────────────── */
+  function openGoalsModal() {
+    let modal = document.getElementById('modal-nutr-goals');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'modal-backdrop';
+      modal.id = 'modal-nutr-goals';
+      modal.innerHTML = `
+        <div class="modal">
+          <div class="modal-handle"></div>
+          <div class="modal-header">
+            <p class="modal-title">Objectifs nutritionnels</p>
+            <button class="btn btn-icon" id="close-goals-modal">✕</button>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+            <div class="form-group"><label>Calories (kcal)</label>
+              <input type="number" id="g-kcal" class="input" min="1000" max="6000" inputmode="numeric"></div>
+            <div class="form-group"><label>Protéines (g)</label>
+              <input type="number" id="g-protein" class="input" min="0" max="500" inputmode="numeric"></div>
+            <div class="form-group"><label>Glucides (g)</label>
+              <input type="number" id="g-carbs" class="input" min="0" max="800" inputmode="numeric"></div>
+            <div class="form-group"><label>Lipides (g)</label>
+              <input type="number" id="g-fat" class="input" min="0" max="300" inputmode="numeric"></div>
+            <button class="btn btn-primary btn-full" id="save-goals-btn">Enregistrer</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+      modal.querySelector('#close-goals-modal').addEventListener('click', () => modal.classList.remove('open'));
+      modal.querySelector('#save-goals-btn').addEventListener('click', () => {
+        const v = id => parseInt(document.getElementById(id)?.value) || 0;
+        const g = { kcal: v('g-kcal'), protein: v('g-protein'), carbs: v('g-carbs'), fat: v('g-fat') };
+        if (!g.kcal) { showToast('Entre un objectif calorique', 'error'); return; }
+        GOALS.kcal = g.kcal; GOALS.protein = g.protein; GOALS.carbs = g.carbs; GOALS.fat = g.fat;
+        localStorage.setItem(`elev-nutrition-goals-${DB.userId()}`, JSON.stringify(g));
+        modal.classList.remove('open');
+        showToast('Objectifs mis à jour ✓', 'success');
+        renderDay();
+      });
+    }
+    document.getElementById('g-kcal').value    = GOALS.kcal;
+    document.getElementById('g-protein').value = GOALS.protein;
+    document.getElementById('g-carbs').value   = GOALS.carbs;
+    document.getElementById('g-fat').value     = GOALS.fat;
+    requestAnimationFrame(() => modal.classList.add('open'));
   }
 
   async function init() {

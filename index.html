@@ -206,7 +206,7 @@
               </div>
               <div style="text-align: right;">
                 <p class="card-subtitle">Objectif</p>
-                <p style="font-size: 1.125rem; font-weight: 600; color: var(--cream);">2 400 kcal</p>
+                <p style="font-size: 1.125rem; font-weight: 600; color: var(--cream);" data-goal-kcal>2 400 kcal</p>
               </div>
             </div>
             <!-- Progress calories -->
@@ -343,21 +343,21 @@
                 <div class="progress-bar" style="flex:1;">
                   <div class="progress-fill" id="nutrition-carbs-bar" style="width:0%;background:var(--color-carbs);"></div>
                 </div>
-                <span class="nutr-macro-bar-val"><span id="nutrition-carbs">0</span> / 240g</span>
+                <span class="nutr-macro-bar-val"><span id="nutrition-carbs">0</span> / <span id="goal-carbs">240</span>g</span>
               </div>
               <div class="nutr-macro-bar-row">
                 <span class="nutr-macro-bar-lbl">Protéines</span>
                 <div class="progress-bar" style="flex:1;">
                   <div class="progress-fill" id="nutrition-protein-bar" style="width:0%;"></div>
                 </div>
-                <span class="nutr-macro-bar-val"><span id="nutrition-protein">0</span> / 180g</span>
+                <span class="nutr-macro-bar-val"><span id="nutrition-protein">0</span> / <span id="goal-protein">180</span>g</span>
               </div>
               <div class="nutr-macro-bar-row">
                 <span class="nutr-macro-bar-lbl">Lipides</span>
                 <div class="progress-bar" style="flex:1;">
                   <div class="progress-fill" id="nutrition-fat-bar" style="width:0%;background:var(--accent-warm);"></div>
                 </div>
-                <span class="nutr-macro-bar-val"><span id="nutrition-fat">0</span> / 80g</span>
+                <span class="nutr-macro-bar-val"><span id="nutrition-fat">0</span> / <span id="goal-fat">80</span>g</span>
               </div>
             </div>
           </div>
@@ -367,7 +367,10 @@
         <div style="margin-top: 20px;">
           <div class="section-header">
             <h2 class="section-title">Alimentation</h2>
-            <button class="section-link btn" id="btn-open-recipes" style="background:none;border:none;padding:0;">Recettes</button>
+            <div class="flex gap-8">
+              <button class="section-link btn" id="btn-edit-goals" style="background:none;border:none;padding:0;">Objectifs</button>
+              <button class="section-link btn" id="btn-open-recipes" style="background:none;border:none;padding:0;">Recettes</button>
+            </div>
           </div>
           <div class="card" style="padding:0;overflow:hidden;" id="nutrition-meals-list"></div>
         </div>
@@ -463,10 +466,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/supabase.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/home.js"></script>
   <script src="js/rest-timer.js"></script>
   <script src="js/workouts.js"></script>
   <script src="js/routines.js"></script>
   <script src="js/fooddb.js"></script>
+  <script src="js/barcode.js"></script>
   <script src="js/food-picker.js"></script>
   <script src="js/nutrition.js"></script>
   <script src="js/recipes.js"></script>
