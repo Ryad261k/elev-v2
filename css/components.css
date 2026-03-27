@@ -1112,6 +1112,95 @@ select {
 }
 
 /* ==========================================
+   NUTRITION — Modal recherche aliments
+   ========================================== */
+.food-search-bar {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.food-results-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.food-modal-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
+.food-result-row {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+}
+
+.food-result-row:last-child {
+  border-bottom: none;
+}
+
+.food-result-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.food-result-main:active {
+  opacity: 0.7;
+}
+
+.food-result-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--cream);
+}
+
+.food-result-per100 {
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+}
+
+.food-result-per100 small {
+  opacity: 0.7;
+}
+
+.food-result-expand {
+  padding-top: 10px;
+}
+
+.food-calc-preview {
+  font-size: 0.75rem;
+  color: var(--accent);
+  min-height: 16px;
+  margin-top: 4px;
+}
+
+.food-no-result {
+  text-align: center;
+  color: var(--cream-dim);
+  font-size: 0.875rem;
+  padding: 32px 24px;
+}
+
+.food-section-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cream-dim);
+  margin-bottom: 10px;
+}
+
+/* ==========================================
    NUTRITION — Sections catégories repas
    ========================================== */
 .category-section {
