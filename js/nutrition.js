@@ -211,6 +211,64 @@ window.Nutrition = (() => {
     el.querySelector('#btn-reset-water')?.addEventListener('click', resetWater);
   }
 
+  /* ── Tendances nutrition (7 derniers jours) ── */
+  async function renderWeeklyTrends() {
+    const el = document.getElementById('nutrition-trends');
+    if (!el) return;
+    try {
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000);
+        days.push(d.toISOString().slice(0, 10));
+      }
+      const { data } = await DB.from('meals')
+        .select('date, meal_items(calories)')
+        .eq('user_id', DB.userId())
+        .in('date', days);
+      const byDay = {};
+      (data || []).forEach(m => {
+        byDay[m.date] = (byDay[m.date] || 0) + (m.meal_items || []).reduce((s, it) => s + (it.calories || 0), 0);
+      });
+      const values = days.map(d => byDay[d] || 0);
+      const maxV   = Math.max(...values, GOALS.kcal, 1);
+      const W = 320, H = 80, pL = 4, pR = 4, pT = 4, pB = 20;
+      const cW = W - pL - pR, cH = H - pT - pB;
+      const bW = cW / days.length;
+      const dayLabels = ['L','M','M','J','V','S','D'];
+      const today = todayStr();
+      const svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;" aria-label="Calories 7 jours">
+        <!-- Ligne objectif -->
+        <line x1="${pL}" y1="${(pT + cH * (1 - GOALS.kcal / maxV)).toFixed(1)}" x2="${W-pR}" y2="${(pT + cH * (1 - GOALS.kcal / maxV)).toFixed(1)}"
+              stroke="var(--accent-warm)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
+        ${days.map((d, i) => {
+          const h = Math.max((values[i] / maxV) * cH, values[i] > 0 ? 2 : 0);
+          const x = pL + i * bW + 2;
+          const y = pT + cH - h;
+          const dow = new Date(d + 'T12:00:00').getDay();
+          const label = dayLabels[(dow + 6) % 7];
+          const isToday = d === today;
+          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bW-4).toFixed(1)}" height="${h.toFixed(1)}"
+                        fill="${isToday ? 'var(--accent-primary)' : values[i] > 0 ? 'var(--accent)' : 'var(--bg-surface)'}" rx="3" opacity="${isToday ? '1' : '0.75'}"/>
+                  <text x="${(x+(bW-4)/2).toFixed(1)}" y="${H-4}" text-anchor="middle"
+                        font-size="8" fill="${isToday ? 'var(--accent-primary)' : 'var(--cream-dim)'}" font-family="sans-serif" font-weight="${isToday ? '600' : '400'}">${label}</text>`;
+        }).join('')}
+      </svg>`;
+      const avg = Math.round(values.filter(v => v > 0).reduce((s, v) => s + v, 0) / Math.max(values.filter(v => v > 0).length, 1));
+      el.innerHTML = `
+        <div class="card" style="margin-top:20px;">
+          <div class="section-header" style="margin-bottom:8px;">
+            <h2 class="section-title">Tendances</h2>
+            <span class="card-subtitle">Moy. ${avg} kcal/j</span>
+          </div>
+          ${svg}
+          <div class="flex items-center gap-8" style="margin-top:8px;">
+            <span style="display:inline-block;width:12px;height:3px;background:var(--accent-warm);border-radius:2px;"></span>
+            <span style="font-size:0.75rem;color:var(--cream-dim);">Objectif ${GOALS.kcal} kcal</span>
+          </div>
+        </div>`;
+    } catch (_) { el.innerHTML = ''; }
+  }
+
   /* ── Init ───────────────────────────────────── */
   function bindStaticElements() {
     if (navBound) return;
@@ -278,6 +336,7 @@ window.Nutrition = (() => {
     bindStaticElements();
     await renderDay();
     renderWater();
+    renderWeeklyTrends();
   }
 
   document.addEventListener('tabchange', e => { if (e.detail.tab === 'nutrition') init(); });

@@ -166,7 +166,7 @@
             </div>
           </div>
           <h1 class="page-header-title" id="home-greeting">Bonjour</h1>
-          <p class="page-header-sub">Prêt pour aujourd'hui ?</p>
+          <p class="page-header-sub" id="home-subtitle" style="transition:opacity 0.3s ease;">Prêt pour aujourd'hui ?</p>
         </header>
 
         <!-- Résumé séance du jour -->
@@ -240,6 +240,25 @@
           </div>
         </section>
 
+        <!-- Activité -->
+        <section aria-label="Activité" class="mt-24">
+          <h2 class="section-title" style="margin-bottom: 12px;">Activité</h2>
+          <div class="stat-row">
+            <div class="stat-chip">
+              <p class="stat-chip-value" id="home-week-count">—</p>
+              <p class="stat-chip-label">Cette semaine</p>
+            </div>
+            <div class="stat-chip">
+              <p class="stat-chip-value" id="home-month-count">—</p>
+              <p class="stat-chip-label">Ce mois</p>
+            </div>
+            <button class="stat-chip pressable" style="cursor:pointer;" onclick="AppState && AppState.switchTab('history')">
+              <span style="font-size:1.25rem;">📊</span>
+              <p class="stat-chip-label" style="margin-top:4px;">Historique</p>
+            </button>
+          </div>
+        </section>
+
         <!-- Raccourcis rapides -->
         <section aria-label="Actions rapides" class="mt-24" style="padding-bottom: 8px;">
           <h2 class="section-title" style="margin-bottom: 12px;">Actions rapides</h2>
@@ -252,9 +271,9 @@
               <span style="font-size: 1.5rem;">🥗</span>
               <p class="stat-chip-label" style="margin-top: 4px;">Repas</p>
             </button>
-            <button class="stat-chip pressable" style="cursor: pointer; text-align: left;" onclick="AppState && AppState.switchTab('history')">
-              <span style="font-size: 1.5rem;">📊</span>
-              <p class="stat-chip-label" style="margin-top: 4px;">Historique</p>
+            <button class="stat-chip pressable" style="cursor: pointer; text-align: left;" onclick="AppState && AppState.switchTab('weight')">
+              <span style="font-size: 1.5rem;">⚖️</span>
+              <p class="stat-chip-label" style="margin-top: 4px;">Poids</p>
             </button>
           </div>
         </section>
@@ -378,6 +397,9 @@
         <!-- Hydratation — peuplé par nutrition.js -->
         <div id="nutrition-hydration"></div>
 
+        <!-- Tendances 7 jours — peuplé par nutrition.js -->
+        <div id="nutrition-trends"></div>
+
       </div>
 
     </section>
@@ -409,6 +431,11 @@
 
         <div id="history-content">
           <!-- Peuplé par js/history.js -->
+        </div>
+
+        <!-- Section stats avancées (progression 1RM, volume par muscle) -->
+        <div id="stats-content" style="margin-top:16px;">
+          <!-- Peuplé par js/stats.js -->
         </div>
 
       </div>
@@ -475,6 +502,7 @@
   <script src="js/food-picker.js"></script>
   <script src="js/nutrition.js"></script>
   <script src="js/recipes.js"></script>
+  <script src="js/weight-chart.js"></script>
   <script src="js/weight.js"></script>
   <script src="js/coach.js"></script>
   <script src="js/onboarding.js"></script>
