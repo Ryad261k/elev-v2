@@ -11,19 +11,35 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 window.SupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 /* ==========================================
-   AUTH — Magic link (passwordless)
+   AUTH — Email + Password
    ========================================== */
 window.Auth = {
   /**
-   * Envoie un magic link à l'email fourni.
+   * Connexion avec email + mot de passe.
    * @param {string} email
+   * @param {string} password
    */
-  async sendMagicLink(email) {
-    const { error } = await window.SupabaseClient.auth.signInWithOtp({
+  async signIn(email, password) {
+    const { data, error } = await window.SupabaseClient.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: window.location.origin }
+      password
     });
     if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Inscription : crée un compte email + mot de passe.
+   * @param {string} email
+   * @param {string} password
+   */
+  async signUp(email, password) {
+    const { data, error } = await window.SupabaseClient.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password
+    });
+    if (error) throw error;
+    return data;
   },
 
   /** Déconnecte l'utilisateur courant. */

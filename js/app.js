@@ -22,7 +22,7 @@ window.AppState = {
    ========================================== */
 const App = (() => {
 
-  const TABS = ['home', 'workouts', 'routines', 'nutrition', 'history'];
+  const TABS = ['home', 'workouts', 'routines', 'nutrition', 'weight', 'history'];
 
   /* ------------------------------------------
      ÉCRANS — loader / auth / app
@@ -52,7 +52,7 @@ const App = (() => {
       showScreen('auth');
     }
 
-    // Écoute les changements d'état (connexion via magic link, déconnexion)
+    // Écoute les changements d'état (connexion, déconnexion)
     Auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         onAuthenticated(session);
@@ -101,49 +101,150 @@ const App = (() => {
   }
 
   /* ------------------------------------------
-     FORM MAGIC LINK
+     FORM EMAIL + PASSWORD
      ------------------------------------------ */
   function bindAuthForm() {
-    const form    = document.getElementById('auth-form');
-    const input   = document.getElementById('auth-email');
-    const btn     = document.getElementById('auth-submit');
-    const confirm = document.getElementById('auth-confirm');
-
+    const form        = document.getElementById('auth-form');
     if (!form) return;
 
+    const emailInput  = document.getElementById('auth-email');
+    const pwInput     = document.getElementById('auth-password');
+    const confirmPw   = document.getElementById('auth-confirm-pw');
+    const confirmGrp  = document.getElementById('auth-confirm-pw-group');
+    const btn         = document.getElementById('auth-submit');
+    const toggleMode  = document.getElementById('auth-toggle-mode');
+    const modeTitle   = document.getElementById('auth-mode-title');
+    const modeSub     = document.getElementById('auth-mode-subtitle');
+    const errorEl     = document.getElementById('auth-error');
+    const signupConf  = document.getElementById('auth-signup-confirm');
+    const backBtn     = document.getElementById('auth-back');
+    const togglePwBtn = document.getElementById('btn-toggle-pw');
+
+    let mode = 'login'; // 'login' | 'signup'
+
+    function setError(msg) {
+      if (!errorEl) return;
+      if (msg) {
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+      } else {
+        errorEl.style.display = 'none';
+      }
+    }
+
+    function setLoading(loading) {
+      btn.disabled    = loading;
+      btn.textContent = loading
+        ? (mode === 'login' ? 'Connexion…' : 'Création…')
+        : (mode === 'login' ? 'Se connecter' : 'Créer mon compte');
+    }
+
+    function switchMode(newMode) {
+      mode = newMode;
+      setError('');
+      if (mode === 'login') {
+        modeTitle.textContent   = 'Connexion';
+        modeSub.textContent     = 'Bienvenue — connecte-toi pour continuer.';
+        btn.textContent         = 'Se connecter';
+        toggleMode.textContent  = 'Pas encore de compte ? S\'inscrire';
+        confirmGrp.style.display = 'none';
+        pwInput.autocomplete    = 'current-password';
+      } else {
+        modeTitle.textContent   = 'Inscription';
+        modeSub.textContent     = 'Crée ton compte en quelques secondes.';
+        btn.textContent         = 'Créer mon compte';
+        toggleMode.textContent  = 'Déjà un compte ? Se connecter';
+        confirmGrp.style.display = '';
+        pwInput.autocomplete    = 'new-password';
+      }
+    }
+
+    // Afficher/masquer mot de passe
+    if (togglePwBtn) {
+      togglePwBtn.addEventListener('click', () => {
+        const isHidden = pwInput.type === 'password';
+        pwInput.type          = isHidden ? 'text' : 'password';
+        togglePwBtn.textContent = isHidden ? '🙈' : '👁';
+      });
+    }
+
+    // Bascule login ↔ signup
+    if (toggleMode) {
+      toggleMode.addEventListener('click', () => {
+        switchMode(mode === 'login' ? 'signup' : 'login');
+      });
+    }
+
+    // Soumission du formulaire
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = input.value.trim();
-      if (!email) return;
+      setError('');
 
-      btn.disabled    = true;
-      btn.textContent = 'Envoi…';
+      const email    = emailInput?.value.trim();
+      const password = pwInput?.value;
+
+      if (!email || !password) {
+        setError('Remplis tous les champs.');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Le mot de passe doit faire au moins 6 caractères.');
+        return;
+      }
+      if (mode === 'signup' && password !== confirmPw?.value) {
+        setError('Les mots de passe ne correspondent pas.');
+        return;
+      }
+
+      setLoading(true);
 
       try {
-        await Auth.sendMagicLink(email);
-        form.style.display = 'none';
-        confirm.classList.add('is-visible');
-        // Affiche l'email dans le message de confirmation
-        const emailSpan = document.getElementById('auth-confirm-email');
-        if (emailSpan) emailSpan.textContent = email;
+        if (mode === 'login') {
+          await Auth.signIn(email, password);
+          // onAuthStateChange gère la suite (SIGNED_IN → onAuthenticated)
+        } else {
+          const result = await Auth.signUp(email, password);
+          // Si Supabase "Confirm email" est activé → session null → afficher confirmation
+          // Si désactivé → session présente → onAuthStateChange gère la suite
+          if (!result.session) {
+            form.style.display          = 'none';
+            signupConf.style.display    = 'flex';
+          }
+        }
       } catch (err) {
-        console.error('[Auth] Erreur magic link:', err);
-        showToast('Erreur lors de l\'envoi. Réessaie.', 'error');
-        btn.disabled    = false;
-        btn.textContent = 'Recevoir le lien';
+        console.error('[Auth] Erreur:', err);
+        const msg = translateAuthError(err.message);
+        setError(msg);
+        setLoading(false);
       }
     });
 
-    // Bouton "changer d'email" dans l'écran de confirmation
-    const backBtn = document.getElementById('auth-back');
+    // Retour depuis l'écran de confirmation inscription
     if (backBtn) {
       backBtn.addEventListener('click', () => {
-        form.style.display = '';
-        confirm.classList.remove('is-visible');
-        btn.disabled   = false;
-        btn.textContent = 'Recevoir le lien';
+        signupConf.style.display = 'none';
+        form.style.display       = '';
+        switchMode('login');
+        setLoading(false);
       });
     }
+  }
+
+  /** Traduit les messages d'erreur Supabase en français */
+  function translateAuthError(msg) {
+    if (!msg) return 'Une erreur est survenue.';
+    const m = msg.toLowerCase();
+    if (m.includes('invalid login') || m.includes('invalid credentials'))
+      return 'Email ou mot de passe incorrect.';
+    if (m.includes('email not confirmed'))
+      return 'Confirme ton adresse email avant de te connecter.';
+    if (m.includes('user already registered') || m.includes('already been registered'))
+      return 'Un compte existe déjà avec cet email.';
+    if (m.includes('password'))
+      return 'Le mot de passe doit faire au moins 6 caractères.';
+    if (m.includes('rate limit'))
+      return 'Trop de tentatives. Réessaie dans quelques minutes.';
+    return 'Erreur : ' + msg;
   }
 
   /* ------------------------------------------
@@ -227,12 +328,53 @@ const App = (() => {
   }
 
   /* ------------------------------------------
+     THEME TOGGLE
+     ------------------------------------------ */
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.dataset.theme = 'dark';
+    } else {
+      root.dataset.theme = 'light';
+    }
+    // Update meta theme-color for browser chrome
+    const metaTheme = document.getElementById('meta-theme-color');
+    if (metaTheme) {
+      metaTheme.content = theme === 'dark' ? '#1a1a18' : '#F0EDE6';
+    }
+    // Update icon
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+  }
+
+  function initTheme() {
+    const saved = localStorage.getItem('elev-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (prefersDark ? 'dark' : 'light');
+    applyTheme(theme);
+  }
+
+  function bindThemeToggle() {
+    const btn = document.getElementById('btn-theme-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const current = document.documentElement.dataset.theme || 'light';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem('elev-theme', next);
+      if (navigator.vibrate) navigator.vibrate(6);
+    });
+  }
+
+  /* ------------------------------------------
      INIT
      ------------------------------------------ */
   function init() {
     window.showToast = showToast;
+    initTheme();
     bindAuthForm();
     bindSignOut();
+    bindThemeToggle();
     initAuth();
   }
 

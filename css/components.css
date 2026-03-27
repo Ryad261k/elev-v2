@@ -95,6 +95,8 @@
   padding: 16px;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--card-shadow);
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .card-surface {
@@ -168,8 +170,8 @@
 
 /* Primary */
 .btn-primary {
-  background: var(--accent);
-  color: var(--bg-dark);
+  background: var(--accent-primary);
+  color: var(--btn-primary-text);
 }
 .btn-primary:hover:not(:disabled) {
   opacity: 0.88;
@@ -178,7 +180,7 @@
 /* Warm / Calories */
 .btn-warm {
   background: var(--accent-warm);
-  color: var(--bg-dark);
+  color: #fff;
 }
 .btn-warm:hover:not(:disabled) {
   opacity: 0.88;
@@ -309,11 +311,15 @@ textarea {
 }
 
 select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b8b0a0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A8A8A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
   cursor: pointer;
+}
+
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23b8b0a0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 /* Input row (side by side) */
@@ -419,7 +425,7 @@ select {
   position: fixed;
   inset: 0;
   z-index: var(--z-backdrop);
-  background: rgba(10, 10, 8, 0.75);
+  background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
@@ -664,7 +670,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(26, 26, 24, 0.6);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: inherit;
   z-index: 5;
 }
@@ -745,15 +751,15 @@ select {
   z-index: calc(var(--z-navbar) - 1);
   width: 56px;
   height: 56px;
-  background: var(--accent);
-  color: var(--bg-dark);
+  background: var(--accent-primary);
+  color: var(--btn-primary-text);
   border: none;
   border-radius: 50%;
   font-size: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(122, 184, 147, 0.35);
+  box-shadow: 0 4px 20px rgba(45, 80, 22, 0.25);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   -webkit-tap-highlight-color: transparent;
@@ -761,6 +767,16 @@ select {
 
 .fab:active {
   transform: scale(0.93);
+  box-shadow: 0 2px 10px rgba(45, 80, 22, 0.15);
+}
+
+[data-theme="dark"] .fab {
+  background: var(--accent);
+  color: #1a1a18;
+  box-shadow: 0 4px 20px rgba(122, 184, 147, 0.35);
+}
+
+[data-theme="dark"] .fab:active {
   box-shadow: 0 2px 10px rgba(122, 184, 147, 0.25);
 }
 
@@ -1860,4 +1876,179 @@ select {
 
 .food-detail-macro + .food-detail-macro {
   border-left: 1px solid var(--border);
+}
+
+/* ==========================================
+   THEME TOGGLE BUTTON
+   ========================================== */
+#btn-theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--cream-dim);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+#btn-theme-toggle:hover {
+  background: var(--border);
+  color: var(--cream);
+}
+#btn-theme-toggle:active {
+  transform: scale(0.9);
+}
+
+/* ==========================================
+   POIDS & MESURES — Module weight
+   ========================================== */
+
+/* Weight input grande taille */
+.weight-input-big {
+  width: 100%;
+  height: 80px;
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  color: var(--cream);
+  font-family: var(--font-sans);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.weight-input-big:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-soft);
+}
+
+/* Weight hero card */
+.weight-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.weight-hero-value {
+  font-size: 3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cream);
+  line-height: 1;
+}
+.weight-hero-unit {
+  font-size: 1.125rem;
+  color: var(--cream-dim);
+  padding-bottom: 6px;
+}
+.weight-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.weight-delta-down { background: rgba(76, 175, 125, 0.12); color: var(--accent); }
+.weight-delta-up   { background: rgba(192, 57, 43, 0.12);  color: var(--color-danger); }
+.weight-delta-same { background: var(--bg-surface); color: var(--cream-dim); }
+
+/* Weight chart */
+.weight-chart-wrap {
+  margin: 4px -4px 0;
+  overflow: hidden;
+}
+
+/* Measurements grid */
+.measure-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.measure-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.measure-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cream-dim);
+}
+.measure-input {
+  height: 48px;
+  padding: 0 14px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--cream);
+  font-family: var(--font-sans);
+  transition: border-color 0.2s ease;
+}
+.measure-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+/* BMI gauge */
+.bmi-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.bmi-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cream);
+  line-height: 1;
+}
+.bmi-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+.bmi-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right,
+    #6DB8E5 0%, #6DB8E5 25%,
+    #4CAF7D 25%, #4CAF7D 55%,
+    #E67E22 55%, #E67E22 78%,
+    #C0392B 78%, #C0392B 100%
+  );
+  position: relative;
+  overflow: visible;
+  margin-top: 6px;
+}
+.bmi-bar-cursor {
+  position: absolute;
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  width: 16px;
+  height: 16px;
+  background: var(--bg-card);
+  border: 3px solid var(--cream);
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  transition: left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }

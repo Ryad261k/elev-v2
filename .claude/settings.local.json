@@ -7,7 +7,9 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(claude install:*)",
-      "Bash(npx serve:*)"
+      "Bash(npx serve:*)",
+      "Bash(wc:*)",
+      "Bash(/c/Users/louis/Desktop/elev-v2/css/components.css:*)"
     ]
   }
 }
