@@ -162,6 +162,98 @@ window.History = (() => {
   }
 
   /* ------------------------------------------
+     PRs & VOLUME
+     ------------------------------------------ */
+  async function fetchAllSets() {
+    const { data: sessions } = await DB.from('sessions')
+      .select('id').eq('user_id', DB.userId()).not('ended_at', 'is', null);
+    if (!sessions?.length) return [];
+    const ids = sessions.map(s => s.id);
+    const { data } = await DB.from('session_sets')
+      .select('exercise_id, reps, weight, exercise:exercises(name)')
+      .in('session_id', ids).eq('is_warmup', false).gt('weight', 0);
+    return data || [];
+  }
+
+  async function fetchWeeklyVolumeSessions() {
+    const since = new Date(Date.now() - 56 * 86400000).toISOString();
+    const { data } = await DB.from('sessions')
+      .select('started_at, session_sets(reps, weight, is_warmup)')
+      .eq('user_id', DB.userId()).not('ended_at', 'is', null)
+      .gte('started_at', since);
+    return data || [];
+  }
+
+  function calcPRs(sets) {
+    const byEx = {};
+    sets.forEach(s => {
+      const id = s.exercise_id;
+      if (!byEx[id]) byEx[id] = { name: s.exercise?.name || '?', sets: [] };
+      byEx[id].sets.push({ reps: s.reps || 0, weight: s.weight || 0 });
+    });
+    return Object.values(byEx).map(ex => {
+      const maxW = Math.max(...ex.sets.map(s => s.weight));
+      const best = ex.sets.filter(s => s.weight === maxW).sort((a, b) => b.reps - a.reps)[0];
+      const orm  = best ? Math.round(best.weight * (1 + best.reps / 30)) : maxW;
+      return { name: ex.name, maxWeight: maxW, bestReps: best?.reps || 1, orm };
+    }).sort((a, b) => b.orm - a.orm).slice(0, 8);
+  }
+
+  function calcWeeklyVol(sessions) {
+    const weeks = {};
+    sessions.forEach(sess => {
+      const d = new Date(sess.started_at);
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      const key = d.toISOString().slice(0, 10);
+      const vol = (sess.session_sets || [])
+        .filter(s => !s.is_warmup)
+        .reduce((v, s) => v + (s.reps || 0) * (s.weight || 0), 0);
+      weeks[key] = (weeks[key] || 0) + vol;
+    });
+    const result = [];
+    for (let i = 7; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - i * 7);
+      const key = d.toISOString().slice(0, 10);
+      result.push({ key, label: i === 0 ? 'Sem.' : `S-${i}`, vol: weeks[key] || 0 });
+    }
+    return result;
+  }
+
+  function renderVolChart(weeks) {
+    const maxV = Math.max(...weeks.map(w => w.vol), 1);
+    const W = 320, H = 110, pL = 4, pR = 4, pT = 8, pB = 24;
+    const cW = W - pL - pR, cH = H - pT - pB;
+    const bW = cW / weeks.length;
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;" aria-label="Volume hebdo">
+      ${weeks.map((w, i) => {
+        const h  = Math.max((w.vol / maxV) * cH, w.vol > 0 ? 2 : 0);
+        const x  = pL + i * bW + 2;
+        const y  = pT + cH - h;
+        return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bW - 4).toFixed(1)}" height="${h.toFixed(1)}"
+                      fill="${w.vol > 0 ? 'var(--accent)' : 'var(--bg-surface)'}" rx="3"/>
+                <text x="${(x + (bW - 4) / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle"
+                      font-size="8" fill="var(--cream-dim)" font-family="sans-serif">${w.label}</text>`;
+      }).join('')}
+    </svg>`;
+  }
+
+  function renderPRs(prs) {
+    if (!prs.length) return '<p class="card-subtitle" style="text-align:center;padding:8px;">Lance tes premières séances pour voir tes records !</p>';
+    return prs.map(p => `
+      <div class="flex items-center justify-between" style="padding:8px 0;border-bottom:1px solid var(--border);">
+        <div>
+          <p style="font-size:0.9375rem;font-weight:500;color:var(--cream);">${p.name}</p>
+          <p class="card-subtitle">${p.bestReps}×${p.maxWeight} kg</p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:1.125rem;font-weight:700;color:var(--accent-primary);">${p.orm} kg</p>
+          <p class="card-subtitle">1RM est.</p>
+        </div>
+      </div>`).join('');
+  }
+
+  /* ------------------------------------------
      RENDU PRINCIPAL
      ------------------------------------------ */
   async function render() {
@@ -171,7 +263,11 @@ window.History = (() => {
     cnt.innerHTML = `<div class="empty-state" style="margin-top:48px;"><div class="spinner"></div></div>`;
 
     try {
-      const [sessions, allDates] = await Promise.all([fetchSessions(), fetchAllDates()]);
+      const [sessions, allDates, allSets, volSessions] = await Promise.all([
+        fetchSessions(), fetchAllDates(), fetchAllSets(), fetchWeeklyVolumeSessions()
+      ]);
+      const prs   = calcPRs(allSets);
+      const weeks = calcWeeklyVol(volSessions);
 
       const streak  = calcStreak(allDates);
       const week    = thisWeekCount(allDates);
@@ -201,6 +297,24 @@ window.History = (() => {
             <span class="card-subtitle">4 semaines</span>
           </div>
           ${renderHeatmap(allDates)}
+        </div>
+
+        <!-- Volume hebdo -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="section-header" style="margin-bottom:4px;">
+            <h2 class="section-title">Volume</h2>
+            <span class="card-subtitle">8 semaines</span>
+          </div>
+          ${renderVolChart(weeks)}
+        </div>
+
+        <!-- Records -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="section-header" style="margin-bottom:4px;">
+            <h2 class="section-title">Records</h2>
+            <span class="card-subtitle" style="color:var(--color-gold);">🏆 1RM estimé (Epley)</span>
+          </div>
+          ${renderPRs(prs)}
         </div>
 
         <!-- Liste séances -->

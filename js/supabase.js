@@ -5,6 +5,8 @@
 
 const SUPABASE_URL  = 'https://axqhwraacpdfdpalgzlb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4cWh3cmFhY3BkZmRwYWxnemxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NzY0MTksImV4cCI6MjA5MDE1MjQxOX0.GtJ2BdEef33qgjuTM6pK1muvcB8vaT9mJciYFKXDUEE';
+window.SUPABASE_URL  = SUPABASE_URL;
+window.SUPABASE_ANON = SUPABASE_ANON;
 
 // Le SDK Supabase est chargé via CDN UMD juste avant ce script dans index.html
 // Il expose window.supabase.createClient

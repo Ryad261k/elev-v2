@@ -7,6 +7,13 @@ window.Nutrition = (() => {
 
   const S     = { date: todayStr() };
   const GOALS = { kcal: 2400, protein: 180, carbs: 240, fat: 80, water: 2000 };
+
+  function loadSavedGoals() {
+    try {
+      const g = JSON.parse(localStorage.getItem(`elev-nutrition-goals-${DB.userId()}`) || 'null');
+      if (g) { GOALS.kcal = g.kcal; GOALS.protein = g.protein; GOALS.carbs = g.carbs; GOALS.fat = g.fat; }
+    } catch {}
+  }
   const CIRC  = 301.6; // 2π × r48
   const CATEGORIES = [
     { name: 'Petit-déjeuner', emoji: '☕', kcalGoal: 720 },
@@ -214,6 +221,7 @@ window.Nutrition = (() => {
   }
 
   async function init() {
+    loadSavedGoals();
     S.date = todayStr();
     bindStaticElements();
     await renderDay();
