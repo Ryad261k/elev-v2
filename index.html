@@ -214,21 +214,9 @@
          ================================================ -->
     <section id="tab-workouts" class="tab-content" role="tabpanel" aria-label="Séance">
       <div class="page-container">
-
-        <header class="page-header">
-          <p class="page-header-eyebrow">Entraînement</p>
-          <h1 class="page-header-title">Séance</h1>
-        </header>
-
-        <div class="empty-state" style="margin-top: 48px;">
-          <span class="empty-state-icon">🏋️</span>
-          <p class="empty-state-title">Aucune séance en cours</p>
-          <p class="empty-state-text">Choisis une routine pour démarrer</p>
-          <button class="btn btn-primary btn-lg" style="margin-top: 16px;" onclick="AppState && AppState.switchTab('routines')">
-            Choisir une routine
-          </button>
+        <div id="workouts-content">
+          <!-- Peuplé par js/workouts.js -->
         </div>
-
       </div>
     </section>
 

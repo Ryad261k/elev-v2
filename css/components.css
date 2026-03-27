@@ -941,3 +941,82 @@ select {
   color: var(--cream-dim);
   opacity: 0.6;
 }
+
+/* ==========================================
+   WORKOUTS — Séances, sets, warmup
+   ========================================== */
+
+.workout-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.workout-header {
+  margin-bottom: 16px;
+}
+
+.workout-session-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.5rem;
+  color: var(--cream);
+}
+
+.workout-meta-block {
+  margin-bottom: 10px;
+}
+
+.workout-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cream-dim);
+}
+
+/* Sets list */
+.sets-list {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sets-list:empty {
+  display: none;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+}
+
+.sets-list .swipeable + .swipeable .set-row {
+  border-top: 1px solid var(--border);
+}
+
+.set-num {
+  width: 22px;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cream-dim);
+  flex-shrink: 0;
+}
+
+.set-input {
+  width: 66px;
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.set-sep {
+  font-size: 0.875rem;
+  color: var(--cream-dim);
+  flex-shrink: 0;
+}
