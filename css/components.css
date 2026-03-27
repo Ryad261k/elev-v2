@@ -1110,3 +1110,107 @@ select {
 .recipe-qty-form {
   flex-direction: column;
 }
+
+/* ==========================================
+   NUTRITION — Sections catégories repas
+   ========================================== */
+.category-section {
+  margin-bottom: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.category-emoji {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.category-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.category-kcal {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-warm);
+}
+
+.category-add-btn {
+  width: 30px;
+  height: 30px;
+  font-size: 1.25rem;
+  color: var(--accent);
+  background: rgba(122, 184, 147, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(122, 184, 147, 0.2);
+  flex-shrink: 0;
+}
+
+.category-items {
+  padding: 6px 0;
+}
+
+.category-empty {
+  font-size: 0.8125rem;
+  color: var(--cream-dim);
+  opacity: 0.6;
+  padding: 10px 14px;
+}
+
+.cat-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.cat-item-row + .cat-item-row {
+  border-top: 1px solid var(--border);
+}
+
+.cat-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cat-item-name {
+  font-size: 0.875rem;
+  color: var(--cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cat-item-qty {
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+}
+
+.cat-item-macros {
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+}
+
+.cat-item-del {
+  width: 26px;
+  height: 26px;
+  font-size: 0.6875rem;
+  color: var(--cream-dim);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
