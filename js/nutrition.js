@@ -6,7 +6,7 @@
 window.Nutrition = (() => {
 
   const S     = { date: todayStr() };
-  const GOALS = { kcal: 2400, protein: 180, carbs: 240, fat: 80 };
+  const GOALS = { kcal: 2400, protein: 180, carbs: 240, fat: 80, water: 2000 };
   const CIRC  = 301.6; // 2π × r48
   const CATEGORIES = [
     { name: 'Petit-déjeuner', emoji: '☕', kcalGoal: 720 },
@@ -165,15 +165,50 @@ window.Nutrition = (() => {
     }
   }
 
+  /* ── Hydratation (localStorage) ────────────── */
+  function waterKey() {
+    return `elev-water-${DB.userId()}-${S.date}`;
+  }
+  function getWater()          { return parseInt(localStorage.getItem(waterKey()) || '0', 10); }
+  function addWater(ml)        { localStorage.setItem(waterKey(), getWater() + ml); renderWater(); if (navigator.vibrate) navigator.vibrate(6); }
+  function resetWater()        { localStorage.setItem(waterKey(), '0'); renderWater(); }
+
+  function renderWater() {
+    const el = document.getElementById('nutrition-hydration');
+    if (!el) return;
+    const ml  = getWater();
+    const pct = Math.min(ml / GOALS.water * 100, 100).toFixed(1);
+    el.innerHTML = `
+      <div class="card" style="margin-top:20px;margin-bottom:8px;">
+        <div class="section-header" style="margin-bottom:8px;">
+          <h2 class="section-title">Hydratation 💧</h2>
+          <span class="card-subtitle">${ml} / ${GOALS.water} ml</span>
+        </div>
+        <div class="progress-bar" style="margin-bottom:12px;height:8px;">
+          <div style="height:100%;width:${pct}%;background:var(--color-info);border-radius:4px;transition:width .4s ease;max-width:100%;"></div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm water-add" data-ml="150" style="flex:1;">+150 ml</button>
+          <button class="btn btn-secondary btn-sm water-add" data-ml="250" style="flex:1;">+250 ml</button>
+          <button class="btn btn-secondary btn-sm water-add" data-ml="500" style="flex:1;">+500 ml</button>
+          <button class="btn btn-ghost btn-sm" id="btn-reset-water" aria-label="Réinitialiser" style="padding:8px 10px;">↺</button>
+        </div>
+      </div>`;
+    el.querySelectorAll('.water-add').forEach(b =>
+      b.addEventListener('click', () => addWater(parseInt(b.dataset.ml)))
+    );
+    el.querySelector('#btn-reset-water')?.addEventListener('click', resetWater);
+  }
+
   /* ── Init ───────────────────────────────────── */
   function bindStaticElements() {
     if (navBound) return;
     navBound = true;
     document.getElementById('nutrition-prev-day')?.addEventListener('click', () => {
-      S.date = shiftDate(-1); renderDay();
+      S.date = shiftDate(-1); renderDay(); renderWater();
     });
     document.getElementById('nutrition-next-day')?.addEventListener('click', () => {
-      if (S.date < todayStr()) { S.date = shiftDate(1); renderDay(); }
+      if (S.date < todayStr()) { S.date = shiftDate(1); renderDay(); renderWater(); }
     });
     document.getElementById('btn-open-recipes')?.addEventListener('click', () => Recipes.openManager());
   }
@@ -182,6 +217,7 @@ window.Nutrition = (() => {
     S.date = todayStr();
     bindStaticElements();
     await renderDay();
+    renderWater();
   }
 
   document.addEventListener('tabchange', e => { if (e.detail.tab === 'nutrition') init(); });

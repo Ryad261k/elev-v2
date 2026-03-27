@@ -8,7 +8,7 @@ window.Workouts = (() => {
   const S = {
     session: null, routine: null,
     loggedSets: {}, notes: {},
-    restTimer: null, clockTimer: null,
+    prBest: {},    clockTimer: null,
   };
 
   // Warmup auto-calculé (jamais sauvegardé)
@@ -20,24 +20,6 @@ window.Workouts = (() => {
       { label: 'É2', reps: 6,  w: r(w * 0.70) },
       { label: 'É3', reps: 3,  w: r(w * 0.85) },
     ];
-  }
-
-  // Timer de repos avec vibration
-  function startRestTimer(sec = 90) {
-    clearInterval(S.restTimer);
-    let rem = sec;
-    const label = () => document.getElementById('rest-timer-label');
-    const tick = () => {
-      if (label()) { label().textContent = `Repos : ${rem}s`; label().style.display = 'inline'; }
-      if (rem-- <= 0) {
-        clearInterval(S.restTimer);
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        showToast("C'est reparti ! 💪", 'success');
-        if (label()) label().style.display = 'none';
-      }
-    };
-    tick();
-    S.restTimer = setInterval(tick, 1000);
   }
 
   // Swipe-to-delete — pointerId uniquement, pas de touch brut
@@ -103,7 +85,7 @@ window.Workouts = (() => {
       if (error) throw error;
       const exercises = await fetchRoutineExercises(routineId);
       S.session = sess; S.routine = { id: routineId, name: routineName };
-      S.loggedSets = {}; S.notes = {};
+      S.loggedSets = {}; S.notes = {}; S.prBest = {};
       exercises.forEach(re => { S.loggedSets[re.exercise.id] = []; });
       await renderSession(exercises);
     } catch (err) {
@@ -131,7 +113,7 @@ window.Workouts = (() => {
         </div>
         <div class="flex gap-12" style="margin-top:6px;">
           <span class="text-dim" id="session-elapsed" style="font-size:0.8125rem;">0 min</span>
-          <span id="rest-timer-label" style="display:none;font-size:0.8125rem;font-weight:500;color:var(--accent);"></span>
+          <span style="font-size:0.8125rem;color:var(--cream-dim);">Bonne séance 💪</span>
         </div>
       </div>
       <div id="exercises-list"></div>`;
@@ -139,6 +121,8 @@ window.Workouts = (() => {
     const list = document.getElementById('exercises-list');
     for (const re of exercises) {
       const prev = await fetchPrevSets(re.exercise.id);
+      // Stocker le meilleur poids précédent pour détection PR
+      if (prev.length) S.prBest[re.exercise.id] = Math.max(...prev.map(s => s.weight || 0));
       list.insertAdjacentHTML('beforeend', buildExerciseCard(re, prev));
     }
     exercises.forEach(re => {
@@ -229,10 +213,24 @@ window.Workouts = (() => {
       const found = arr.find(s => s.n === n);
       if (found) { found.reps = reps; found.weight = weight; }
       else arr.push({ n, reps, weight });
-      ev.currentTarget.style.background = 'var(--accent)';
-      ev.currentTarget.style.color = 'var(--bg-dark)';
-      showToast(`Série ${n} · ${reps}×${weight}kg`, 'success', 2000);
-      startRestTimer(90);
+
+      const prevBest = S.prBest[exId];
+      const isPR = prevBest !== undefined && weight > prevBest;
+      if (weight > (S.prBest[exId] || 0)) S.prBest[exId] = weight;
+
+      const btn = ev.currentTarget;
+      if (isPR) {
+        btn.textContent = '🏆';
+        btn.style.background = 'var(--color-gold)';
+        btn.style.color = '#fff';
+        showToast(`🏆 Nouveau record ! ${weight} kg`, 'success', 3500);
+        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+      } else {
+        btn.style.background = 'var(--accent)';
+        btn.style.color = '#fff';
+        showToast(`Série ${n} · ${reps}×${weight}kg`, 'success', 1800);
+      }
+      window.RestTimer?.start(90);
     });
   }
 
@@ -245,7 +243,7 @@ window.Workouts = (() => {
 
   async function finishSession() {
     if (!S.session) return;
-    clearInterval(S.clockTimer); clearInterval(S.restTimer);
+    clearInterval(S.clockTimer); window.RestTimer?.stop();
     const endedAt = new Date().toISOString();
     try {
       await DB.from('sessions').update({

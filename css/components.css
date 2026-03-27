@@ -2052,3 +2052,96 @@ select {
   box-shadow: 0 2px 6px rgba(0,0,0,0.25);
   transition: left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
+
+/* ==========================================
+   REST TIMER OVERLAY
+   ========================================== */
+#rest-timer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 150;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+  padding: 10px 16px;
+  transform: translateY(-100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#rest-timer-overlay.open {
+  transform: translateY(0);
+}
+.rest-timer-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.rest-timer-ring-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+}
+.rest-timer-time {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cream);
+}
+.rest-timer-controls {
+  flex: 1;
+  min-width: 0;
+}
+.rest-timer-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cream-dim);
+  margin-bottom: 6px;
+}
+.rest-timer-btns {
+  display: flex;
+  gap: 6px;
+}
+.rest-adj {
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+}
+
+/* ==========================================
+   HISTORY — Heatmap + session cards
+   ========================================== */
+.history-card {
+  margin-bottom: 10px;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(28, 1fr);
+  gap: 3px;
+  margin-bottom: 6px;
+}
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--bg-surface);
+  transition: background 0.2s ease;
+}
+.heatmap-cell.heatmap-active {
+  background: var(--accent);
+}
+.heatmap-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  color: var(--cream-dim);
+}
