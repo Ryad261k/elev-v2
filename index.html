@@ -225,27 +225,12 @@
          ================================================ -->
     <section id="tab-routines" class="tab-content" role="tabpanel" aria-label="Routines">
       <div class="page-container">
-
-        <header class="page-header">
-          <p class="page-header-eyebrow">Programmes</p>
-          <h1 class="page-header-title">Routines</h1>
-        </header>
-
-        <div class="empty-state" style="margin-top: 48px;">
-          <span class="empty-state-icon">📋</span>
-          <p class="empty-state-title">Aucune routine</p>
-          <p class="empty-state-text">Crée ta première routine d'entraînement</p>
-          <button class="btn btn-primary btn-lg" style="margin-top: 16px;">
-            Créer une routine
-          </button>
+        <div id="routines-content">
+          <!-- Peuplé par js/routines.js -->
         </div>
-
       </div>
 
-      <!-- FAB: Nouvelle routine -->
-      <button class="fab" aria-label="Créer une routine" style="display: none;" id="fab-routine">
-        +
-      </button>
+      <button class="fab" aria-label="Créer une routine" id="fab-routine" style="display:none;">+</button>
     </section>
 
     <!-- ================================================
