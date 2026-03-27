@@ -1050,3 +1050,63 @@ select {
   padding: 9px 10px;
   font-size: 0.9375rem;
 }
+
+/* ==========================================
+   NUTRITION — Repas & macros
+   ========================================== */
+
+.meal-card {
+  transition: background 0.15s ease;
+}
+
+.meal-items-list {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.meal-item-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.meal-item-name {
+  font-size: 0.875rem;
+  color: var(--cream);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-dim-sm {
+  font-size: 0.75rem;
+}
+
+.meal-item-macros {
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+  flex-shrink: 0;
+}
+
+/* Inputs macro compacts dans les modals */
+.macro-mini-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.macro-mini-input {
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 0.9375rem;
+}
+
+/* Recette — état ouvert dans le picker */
+.recipe-qty-form {
+  flex-direction: column;
+}

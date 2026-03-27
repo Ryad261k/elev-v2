@@ -221,7 +221,7 @@ window.Routines = (() => {
                    value="${ex.sets}" min="1" max="20" inputmode="numeric">
           </div>
           <div class="form-group">
-            <label>Reps</label>
+            <label>Répétitions</label>
             <input type="number" class="input" data-field="reps" data-idx="${i}"
                    value="${ex.reps}" min="1" max="99" inputmode="numeric">
           </div>

@@ -16,9 +16,9 @@ window.Workouts = (() => {
     if (!w || w <= 20) return [];
     const r = v => Math.round(v / 2.5) * 2.5;
     return [
-      { label: 'W1', reps: 12, w: r(w * 0.50) },
-      { label: 'W2', reps: 6,  w: r(w * 0.70) },
-      { label: 'W3', reps: 3,  w: r(w * 0.85) },
+      { label: 'É1', reps: 12, w: r(w * 0.50) },
+      { label: 'É2', reps: 6,  w: r(w * 0.70) },
+      { label: 'É3', reps: 3,  w: r(w * 0.85) },
     ];
   }
 
@@ -211,7 +211,7 @@ window.Workouts = (() => {
       <div class="swipe-delete-bg">🗑</div>
       <div class="swipe-content set-row">
         <span class="set-num">${n}</span>
-        <input type="number" class="input set-input" value="${defaultReps}" min="1" max="99" inputmode="numeric" aria-label="Reps">
+        <input type="number" class="input set-input" value="${defaultReps}" min="1" max="99" inputmode="numeric" aria-label="Répétitions">
         <span class="set-sep">×</span>
         <input type="number" class="input set-input" value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
         <span class="set-sep">kg</span>
@@ -231,7 +231,7 @@ window.Workouts = (() => {
       else arr.push({ n, reps, weight });
       ev.currentTarget.style.background = 'var(--accent)';
       ev.currentTarget.style.color = 'var(--bg-dark)';
-      showToast(`Set ${n} · ${reps}×${weight}kg`, 'success', 2000);
+      showToast(`Série ${n} · ${reps}×${weight}kg`, 'success', 2000);
       startRestTimer(90);
     });
   }
