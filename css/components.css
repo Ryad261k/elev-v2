@@ -810,3 +810,134 @@ select {
   border-radius: 2px;
   background: var(--accent);
 }
+
+/* ==========================================
+   LOADER SCREEN (vérification session initiale)
+   ========================================== */
+#loader-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.loader-brand {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 2.75rem;
+  color: var(--cream);
+  letter-spacing: -0.02em;
+}
+
+/* ==========================================
+   AUTH SCREEN — Magic link login
+   ========================================== */
+#auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+/* Quand hidden, on utilise l'attribut HTML hidden → display:none automatique */
+
+.auth-container {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.auth-brand {
+  text-align: center;
+}
+
+.auth-logo {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 3.5rem;
+  color: var(--cream);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.auth-tagline {
+  font-size: 0.9375rem;
+  color: var(--cream-dim);
+  margin-top: 8px;
+}
+
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.auth-card-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.375rem;
+  color: var(--cream);
+}
+
+.auth-card-subtitle {
+  font-size: 0.875rem;
+  color: var(--cream-dim);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* Confirm state */
+#auth-confirm {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+#auth-confirm.is-visible {
+  display: flex;
+}
+
+.auth-confirm-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(122, 184, 147, 0.15);
+  border: 1px solid rgba(122, 184, 147, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 4px;
+  animation: checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.auth-confirm-email {
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--cream-dim);
+  opacity: 0.6;
+}
