@@ -213,7 +213,7 @@ const App = (() => {
         }
       } catch (err) {
         console.error('[Auth] Erreur:', err);
-        const msg = translateAuthError(err.message);
+        const msg = translateAuthError(err);
         setError(msg);
         setLoading(false);
       }
@@ -230,21 +230,30 @@ const App = (() => {
     }
   }
 
-  /** Traduit les messages d'erreur Supabase en français */
-  function translateAuthError(msg) {
-    if (!msg) return 'Une erreur est survenue.';
-    const m = msg.toLowerCase();
-    if (m.includes('invalid login') || m.includes('invalid credentials'))
-      return 'Email ou mot de passe incorrect.';
-    if (m.includes('email not confirmed'))
-      return 'Confirme ton adresse email avant de te connecter.';
-    if (m.includes('user already registered') || m.includes('already been registered'))
-      return 'Un compte existe déjà avec cet email.';
-    if (m.includes('password'))
+  /** Traduit les erreurs Supabase en français (reçoit l'objet erreur complet) */
+  function translateAuthError(err) {
+    if (!err) return 'Une erreur est survenue.';
+    const code = (err.code || '').toLowerCase();
+    const msg  = (err.message || '').toLowerCase();
+
+    // Email non confirmé — Supabase peut envoyer le code OU masquer derrière "invalid credentials"
+    if (code === 'email_not_confirmed' || msg.includes('email not confirmed'))
+      return 'Confirme ton adresse email avant de te connecter. Vérifie ta boîte mail.';
+
+    // Identifiants invalides — peut aussi cacher un email non confirmé
+    if (code === 'invalid_credentials' || msg.includes('invalid login') || msg.includes('invalid credentials'))
+      return 'Email ou mot de passe incorrect. Si tu viens de t\'inscrire, pense à confirmer ton adresse email.';
+
+    if (code === 'user_already_exists' || msg.includes('user already registered') || msg.includes('already been registered'))
+      return 'Un compte existe déjà avec cet email. Connecte-toi.';
+
+    if (msg.includes('password should be'))
       return 'Le mot de passe doit faire au moins 6 caractères.';
-    if (m.includes('rate limit'))
+
+    if (msg.includes('rate limit') || msg.includes('too many'))
       return 'Trop de tentatives. Réessaie dans quelques minutes.';
-    return 'Erreur : ' + msg;
+
+    return 'Erreur : ' + (err.message || 'inconnue');
   }
 
   /* ------------------------------------------
