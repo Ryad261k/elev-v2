@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a18" />
+  <meta name="description" content="Élev — Suivi musculation & nutrition" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <title>Élev</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display:ital@1&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+</head>
+<body>
+
+  <!-- Toast container -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- App shell -->
+  <div id="app">
+
+    <!-- ================================================
+         TAB: ACCUEIL
+         ================================================ -->
+    <section id="tab-home" class="tab-content active" role="tabpanel" aria-label="Accueil">
+      <div class="page-container">
+
+        <header class="page-header">
+          <p class="page-header-eyebrow" id="home-date">Vendredi 27 mars</p>
+          <h1 class="page-header-title">Bonjour, Louis</h1>
+          <p class="page-header-sub">Prêt pour aujourd'hui ?</p>
+        </header>
+
+        <!-- Résumé séance du jour -->
+        <section aria-label="Séance du jour">
+          <div class="section-header">
+            <h2 class="section-title">Séance</h2>
+            <button class="section-link btn-ghost btn-sm btn" onclick="AppState && AppState.switchTab('workouts')">
+              Démarrer
+            </button>
+          </div>
+          <div class="card card-accent-left" id="home-workout-card">
+            <div class="empty-state" style="padding: 24px 0;">
+              <span class="empty-state-icon">💪</span>
+              <p class="empty-state-title">Aucune séance aujourd'hui</p>
+              <p class="empty-state-text">Lance une routine pour commencer</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Résumé nutrition du jour -->
+        <section aria-label="Nutrition du jour" class="mt-24">
+          <div class="section-header">
+            <h2 class="section-title">Nutrition</h2>
+            <button class="section-link btn-ghost btn-sm btn" onclick="AppState && AppState.switchTab('nutrition')">
+              Ajouter
+            </button>
+          </div>
+          <div class="card" id="home-nutrition-card">
+            <!-- Calories -->
+            <div class="flex items-center justify-between" style="margin-bottom: 16px;">
+              <div>
+                <p class="card-subtitle">Calories</p>
+                <p style="font-family: var(--font-serif); font-style: italic; font-size: 2rem; color: var(--accent-warm); line-height: 1;">
+                  <span id="home-kcal">0</span>
+                  <span style="font-size: 0.875rem; color: var(--cream-dim); font-family: var(--font-sans); font-style: normal;"> kcal</span>
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <p class="card-subtitle">Objectif</p>
+                <p style="font-size: 1.125rem; font-weight: 600; color: var(--cream);">2 400 kcal</p>
+              </div>
+            </div>
+            <!-- Progress calories -->
+            <div class="progress-bar" style="margin-bottom: 16px;">
+              <div class="progress-fill progress-fill-warm" id="home-kcal-bar" style="width: 0%;"></div>
+            </div>
+            <!-- Macros -->
+            <div class="macro-row">
+              <div class="macro-item">
+                <p class="macro-value" id="home-protein">0g</p>
+                <p class="macro-label">Protéines</p>
+                <div class="macro-bar">
+                  <div class="macro-bar-fill" id="home-protein-bar" style="width: 0%; background: var(--accent);"></div>
+                </div>
+              </div>
+              <div class="macro-item">
+                <p class="macro-value" id="home-carbs">0g</p>
+                <p class="macro-label">Glucides</p>
+                <div class="macro-bar">
+                  <div class="macro-bar-fill" id="home-carbs-bar" style="width: 0%; background: #8b9cf0;"></div>
+                </div>
+              </div>
+              <div class="macro-item">
+                <p class="macro-value" id="home-fat">0g</p>
+                <p class="macro-label">Lipides</p>
+                <div class="macro-bar">
+                  <div class="macro-bar-fill" id="home-fat-bar" style="width: 0%; background: var(--accent-warm);"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Raccourcis rapides -->
+        <section aria-label="Actions rapides" class="mt-24" style="padding-bottom: 8px;">
+          <h2 class="section-title" style="margin-bottom: 12px;">Actions rapides</h2>
+          <div class="stat-row">
+            <button class="stat-chip pressable" style="cursor: pointer; text-align: left;" onclick="AppState && AppState.switchTab('workouts')">
+              <span style="font-size: 1.5rem;">🏋️</span>
+              <p class="stat-chip-label" style="margin-top: 4px;">Séance</p>
+            </button>
+            <button class="stat-chip pressable" style="cursor: pointer; text-align: left;" onclick="AppState && AppState.switchTab('nutrition')">
+              <span style="font-size: 1.5rem;">🥗</span>
+              <p class="stat-chip-label" style="margin-top: 4px;">Repas</p>
+            </button>
+            <button class="stat-chip pressable" style="cursor: pointer; text-align: left;" onclick="AppState && AppState.switchTab('history')">
+              <span style="font-size: 1.5rem;">📊</span>
+              <p class="stat-chip-label" style="margin-top: 4px;">Historique</p>
+            </button>
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- ================================================
+         TAB: SÉANCE
+         ================================================ -->
+    <section id="tab-workouts" class="tab-content" role="tabpanel" aria-label="Séance">
+      <div class="page-container">
+
+        <header class="page-header">
+          <p class="page-header-eyebrow">Entraînement</p>
+          <h1 class="page-header-title">Séance</h1>
+        </header>
+
+        <div class="empty-state" style="margin-top: 48px;">
+          <span class="empty-state-icon">🏋️</span>
+          <p class="empty-state-title">Aucune séance en cours</p>
+          <p class="empty-state-text">Choisis une routine pour démarrer</p>
+          <button class="btn btn-primary btn-lg" style="margin-top: 16px;" onclick="AppState && AppState.switchTab('routines')">
+            Choisir une routine
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================
+         TAB: ROUTINES
+         ================================================ -->
+    <section id="tab-routines" class="tab-content" role="tabpanel" aria-label="Routines">
+      <div class="page-container">
+
+        <header class="page-header">
+          <p class="page-header-eyebrow">Programmes</p>
+          <h1 class="page-header-title">Routines</h1>
+        </header>
+
+        <div class="empty-state" style="margin-top: 48px;">
+          <span class="empty-state-icon">📋</span>
+          <p class="empty-state-title">Aucune routine</p>
+          <p class="empty-state-text">Crée ta première routine d'entraînement</p>
+          <button class="btn btn-primary btn-lg" style="margin-top: 16px;">
+            Créer une routine
+          </button>
+        </div>
+
+      </div>
+
+      <!-- FAB: Nouvelle routine -->
+      <button class="fab" aria-label="Créer une routine" style="display: none;" id="fab-routine">
+        +
+      </button>
+    </section>
+
+    <!-- ================================================
+         TAB: NUTRITION
+         ================================================ -->
+    <section id="tab-nutrition" class="tab-content" role="tabpanel" aria-label="Nutrition">
+      <div class="page-container">
+
+        <header class="page-header" style="padding-bottom: 0;">
+          <p class="page-header-eyebrow">Alimentation</p>
+          <h1 class="page-header-title">Nutrition</h1>
+          <!-- Navigation jour -->
+          <div class="flex items-center gap-12" style="margin-top: 12px;">
+            <button class="btn btn-icon" id="nutrition-prev-day" aria-label="Jour précédent">‹</button>
+            <p style="flex: 1; text-align: center; font-size: 0.875rem; font-weight: 500; color: var(--cream);" id="nutrition-date">
+              Aujourd'hui
+            </p>
+            <button class="btn btn-icon" id="nutrition-next-day" aria-label="Jour suivant">›</button>
+          </div>
+        </header>
+
+        <!-- Bilan macros du jour -->
+        <div class="card" style="margin-top: 16px;" id="nutrition-summary-card">
+          <div class="flex items-center justify-between" style="margin-bottom: 14px;">
+            <div>
+              <p class="card-subtitle">Calories</p>
+              <p style="font-family: var(--font-serif); font-style: italic; font-size: 2.25rem; color: var(--accent-warm); line-height: 1;">
+                <span id="nutrition-kcal-total">0</span>
+                <span style="font-size: 0.8125rem; color: var(--cream-dim); font-family: var(--font-sans); font-style: normal;"> / 2 400</span>
+              </p>
+            </div>
+            <!-- SVG ring placeholder -->
+            <svg width="60" height="60" viewBox="0 0 60 60" aria-hidden="true">
+              <circle cx="30" cy="30" r="24" fill="none" stroke="var(--bg-surface)" stroke-width="6" />
+              <circle id="nutrition-ring" cx="30" cy="30" r="24" fill="none"
+                stroke="var(--accent-warm)" stroke-width="6"
+                stroke-dasharray="150.8" stroke-dashoffset="150.8"
+                stroke-linecap="round"
+                transform="rotate(-90 30 30)"
+                class="ring-progress" />
+            </svg>
+          </div>
+          <!-- Macros bars -->
+          <div class="macro-row">
+            <div class="macro-item">
+              <p class="macro-value" id="nutrition-protein">0g</p>
+              <p class="macro-label">Protéines</p>
+              <div class="macro-bar">
+                <div class="macro-bar-fill" id="nutrition-protein-bar" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="macro-item">
+              <p class="macro-value" id="nutrition-carbs">0g</p>
+              <p class="macro-label">Glucides</p>
+              <div class="macro-bar">
+                <div class="macro-bar-fill" id="nutrition-carbs-bar" style="width: 0%; background: #8b9cf0;"></div>
+              </div>
+            </div>
+            <div class="macro-item">
+              <p class="macro-value" id="nutrition-fat">0g</p>
+              <p class="macro-label">Lipides</p>
+              <div class="macro-bar">
+                <div class="macro-bar-fill" id="nutrition-fat-bar" style="width: 0%; background: var(--accent-warm);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste repas -->
+        <section aria-label="Repas du jour" class="mt-24">
+          <div class="section-header">
+            <h2 class="section-title">Repas</h2>
+          </div>
+          <div id="nutrition-meals-list">
+            <div class="empty-state" style="padding: 32px 0;">
+              <span class="empty-state-icon">🥗</span>
+              <p class="empty-state-title">Aucun repas</p>
+              <p class="empty-state-text">Ajoute ton premier repas de la journée</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- FAB: Ajouter repas -->
+      <button class="fab" aria-label="Ajouter un repas" id="fab-meal">
+        +
+      </button>
+    </section>
+
+    <!-- ================================================
+         TAB: HISTORIQUE
+         ================================================ -->
+    <section id="tab-history" class="tab-content" role="tabpanel" aria-label="Historique">
+      <div class="page-container">
+
+        <header class="page-header">
+          <p class="page-header-eyebrow">Progression</p>
+          <h1 class="page-header-title">Historique</h1>
+        </header>
+
+        <div class="empty-state" style="margin-top: 48px;">
+          <span class="empty-state-icon">📊</span>
+          <p class="empty-state-title">Aucun historique</p>
+          <p class="empty-state-text">Tes séances passées apparaîtront ici</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================
+         NAVBAR
+         ================================================ -->
+    <nav class="navbar" role="tablist" aria-label="Navigation principale">
+
+      <button class="nav-tab active" role="tab" aria-selected="true"
+              data-tab="home" aria-controls="tab-home">
+        <span class="nav-icon" aria-hidden="true">🏠</span>
+        <span class="nav-label">Accueil</span>
+      </button>
+
+      <button class="nav-tab" role="tab" aria-selected="false"
+              data-tab="workouts" aria-controls="tab-workouts">
+        <span class="nav-icon" aria-hidden="true">💪</span>
+        <span class="nav-label">Séance</span>
+      </button>
+
+      <button class="nav-tab" role="tab" aria-selected="false"
+              data-tab="routines" aria-controls="tab-routines">
+        <span class="nav-icon" aria-hidden="true">📋</span>
+        <span class="nav-label">Routines</span>
+      </button>
+
+      <button class="nav-tab" role="tab" aria-selected="false"
+              data-tab="nutrition" aria-controls="tab-nutrition">
+        <span class="nav-icon" aria-hidden="true">🥗</span>
+        <span class="nav-label">Nutrition</span>
+      </button>
+
+      <button class="nav-tab" role="tab" aria-selected="false"
+              data-tab="history" aria-controls="tab-history">
+        <span class="nav-icon" aria-hidden="true">📊</span>
+        <span class="nav-label">Historique</span>
+      </button>
+
+    </nav>
+
+  </div><!-- /#app -->
+
+  <!-- ================================================
+       SCRIPTS
+       ================================================ -->
+  <script src="js/supabase.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/workouts.js"></script>
+  <script src="js/routines.js"></script>
+  <script src="js/nutrition.js"></script>
+  <script src="js/recipes.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/stats.js"></script>
+
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+/* ============================================
+   ANIMATIONS.CSS — Transitions, swipe, loaders
+   Élev v2
+   ============================================ */
+
+/* ==========================================
+   TAB TRANSITIONS
+   ========================================== */
+.tab-content {
+  animation: fadeUp 0.25s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================
+   CARD APPEAR
+   ========================================== */
+.card-appear {
+  animation: cardAppear 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Staggered list items */
+.list-item:nth-child(1) { animation-delay: 0ms; }
+.list-item:nth-child(2) { animation-delay: 40ms; }
+.list-item:nth-child(3) { animation-delay: 80ms; }
+.list-item:nth-child(4) { animation-delay: 120ms; }
+.list-item:nth-child(5) { animation-delay: 160ms; }
+
+/* ==========================================
+   SWIPE TO DELETE
+   ========================================== */
+.swipeable {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  touch-action: pan-y;
+}
+
+.swipe-delete-bg {
+  position: absolute;
+  inset: 0;
+  background: #c0392b;
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 20px;
+  color: #fff;
+  font-size: 1.125rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.swipeable.swiping .swipe-delete-bg {
+  opacity: 1;
+}
+
+.swipe-content {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.15s ease;
+  background: var(--bg-card);
+  border-radius: inherit;
+  will-change: transform;
+}
+
+.swipeable.snap-back .swipe-content {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ==========================================
+   PULSE (for active session indicator)
+   ========================================== */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(122, 184, 147, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(122, 184, 147, 0);
+  }
+}
+
+/* ==========================================
+   SHIMMER (skeleton loading)
+   ========================================== */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface) 25%,
+    var(--border) 50%,
+    var(--bg-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% center; }
+  to   { background-position: -200% center; }
+}
+
+/* ==========================================
+   BOUNCE (confirmation feedback)
+   ========================================== */
+.bounce {
+  animation: bounce 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  30%       { transform: translateY(-6px); }
+  60%       { transform: translateY(-3px); }
+}
+
+/* ==========================================
+   CHECK ANIMATION (set completed)
+   ========================================== */
+.check-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg-dark);
+  font-size: 0.875rem;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+}
+
+.check-circle.completed {
+  animation: checkPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes checkPop {
+  0%   { transform: scale(0.7); }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* ==========================================
+   PAGE TRANSITION (tab switching)
+   ========================================== */
+.tab-enter {
+  animation: tabEnter 0.22s ease both;
+}
+
+@keyframes tabEnter {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ==========================================
+   RING PROGRESS (nutrition)
+   ========================================== */
+.ring-progress {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* ==========================================
+   PRESS SCALE (generic interactive)
+   ========================================== */
+.pressable {
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.pressable:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
