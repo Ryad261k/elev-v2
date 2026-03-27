@@ -2442,3 +2442,46 @@ select {
   font-weight: 600;
 }
 .weight-filter-btn:active { transform: scale(0.96); }
+
+/* =============================================
+   PULL-TO-REFRESH
+   ============================================= */
+#ptr-indicator {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+.ptr-spinner {
+  width: 28px; height: 28px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* =============================================
+   NUTRITION — Copier repas
+   ============================================= */
+.nutr-cat-copy {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  padding: 8px 6px;
+  cursor: pointer;
+  color: var(--cream-dim);
+  -webkit-tap-highlight-color: transparent;
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.nutr-cat-copy:active { background: var(--bg-surface); }

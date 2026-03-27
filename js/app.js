@@ -1,8 +1,3 @@
-/* ============================================
-   APP.JS — Router SPA, AppState, auth flow
-   Élev v2
-   ============================================ */
-
 /* ==========================================
    ÉTAT GLOBAL
    ========================================== */
@@ -20,7 +15,7 @@ window.AppState = {
 /* ==========================================
    MODULE APP
    ========================================== */
-const App = (() => {
+const App = window.App = (() => {
 
   const TABS = ['home', 'workouts', 'routines', 'nutrition', 'weight', 'history'];
 
@@ -72,6 +67,7 @@ const App = (() => {
     if (window.HomeTab) HomeTab.init();
     if (window.Coach) Coach.init();
     if (window.Onboarding && !Onboarding.isComplete()) Onboarding.show();
+    bindProfileBtn();
   }
 
   function onSignedOut() {
@@ -257,6 +253,13 @@ const App = (() => {
       return 'Trop de tentatives. Réessaie dans quelques minutes.';
 
     return 'Erreur : ' + (err.message || 'inconnue');
+  }
+
+  function bindProfileBtn() {
+    const btn = document.getElementById('btn-open-profile');
+    if (!btn) return;
+    btn.replaceWith(btn.cloneNode(true));
+    document.getElementById('btn-open-profile')?.addEventListener('click', () => { if (window.Profile) Profile.open(); });
   }
 
   /* ------------------------------------------

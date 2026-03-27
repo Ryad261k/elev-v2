@@ -1,8 +1,3 @@
-/* ============================================
-   NUTRITION.JS — Page repas, macros, catégories
-   Modal food picker → food-picker.js · Élev v2
-   ============================================ */
-
 window.Nutrition = (() => {
 
   const S     = { date: todayStr() };
@@ -126,6 +121,7 @@ window.Nutrition = (() => {
               <p class="nutr-cat-name">${cat.name} <span style="color:var(--cream-dim);font-weight:400;">›</span></p>
               <p class="nutr-cat-kcal">${eaten} / ${cat.kcalGoal} kcal</p>
             </div>
+            <button class="nutr-cat-copy" data-cat="${cat.name}" aria-label="Copier repas">📋</button>
             <button class="nutr-cat-add" data-cat="${cat.name}" aria-label="Ajouter">+</button>
           </div>
           ${items.length ? `<div>${itemsHtml}</div>` : ''}
@@ -135,6 +131,9 @@ window.Nutrition = (() => {
     list.querySelectorAll('[data-cat]').forEach(el =>
       el.addEventListener('click', e => { e.stopPropagation(); openPicker(el.dataset.cat); })
     );
+    list.querySelectorAll('.nutr-cat-copy').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); openCopyMealModal(btn.dataset.cat); })
+    );
     list.querySelectorAll('[data-del]').forEach(b =>
       b.addEventListener('click', async e => {
         e.stopPropagation();
@@ -142,6 +141,62 @@ window.Nutrition = (() => {
         catch(_) { showToast('Erreur suppression', 'error'); }
       })
     );
+  }
+
+  /* ── Copier un repas passé ──────────────────── */
+  async function openCopyMealModal(catName) {
+    let modal = document.getElementById('modal-copy-meal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'modal-backdrop'; modal.id = 'modal-copy-meal';
+      modal.innerHTML = `<div class="modal"><div class="modal-handle"></div>
+        <div class="modal-header">
+          <p class="modal-title" id="copy-meal-title">Copier un repas</p>
+          <button class="btn btn-icon" id="close-copy-modal">✕</button>
+        </div>
+        <div id="copy-meal-body" style="overflow-y:auto;max-height:60dvh;padding:16px;"></div>
+      </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+      modal.querySelector('#close-copy-modal').addEventListener('click', () => modal.classList.remove('open'));
+    }
+    document.getElementById('copy-meal-title').textContent = `Copier — ${catName}`;
+    const body = document.getElementById('copy-meal-body');
+    body.innerHTML = '<div style="display:flex;justify-content:center;padding:24px;"><div class="spinner"></div></div>';
+    requestAnimationFrame(() => modal.classList.add('open'));
+
+    try {
+      const since = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+      const { data } = await DB.from('meals')
+        .select('id, date, meal_items(id, food_name, quantity_g, calories, protein, carbs, fat)')
+        .eq('user_id', DB.userId()).eq('name', catName).gte('date', since)
+        .neq('date', S.date).order('date', { ascending: false }).limit(10);
+      const meals = (data || []).filter(m => m.meal_items?.length);
+      if (!meals.length) { body.innerHTML = '<p class="card-subtitle" style="text-align:center;padding:24px 0;">Aucun repas récent à copier.</p>'; return; }
+      body.innerHTML = meals.map(m => `
+        <div style="padding:12px 0;border-bottom:1px solid var(--border);">
+          <div class="flex items-center justify-between" style="margin-bottom:6px;">
+            <p style="font-weight:500;color:var(--cream);">${new Date(m.date + 'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})}</p>
+            <button class="btn btn-secondary btn-sm" data-mealid="${m.id}">Copier tout</button>
+          </div>
+          <p class="card-subtitle" style="font-size:0.75rem;">${m.meal_items.map(it => `${it.food_name}${it.quantity_g ? ` ${it.quantity_g}g` : ''}`).join(' · ')}</p>
+        </div>`).join('');
+      body.querySelectorAll('[data-mealid]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const meal = meals.find(m => m.id === btn.dataset.mealid);
+          if (!meal) return;
+          try {
+            const mealId = await getOrCreateMeal(catName, S.date);
+            for (const it of meal.meal_items) {
+              await addItemToMeal(mealId, { name: it.food_name, qty: it.quantity_g, kcal: it.calories, protein: it.protein, carbs: it.carbs, fat: it.fat });
+            }
+            modal.classList.remove('open');
+            showToast(`${meal.meal_items.length} aliment(s) copiés ✓`, 'success');
+            await renderDay();
+          } catch(_) { showToast('Erreur lors de la copie', 'error'); }
+        });
+      });
+    } catch(_) { body.innerHTML = '<p class="card-subtitle" style="text-align:center;padding:16px 0;">Erreur de chargement</p>'; }
   }
 
   /* ── Ouvrir le picker ──────────────────────── */

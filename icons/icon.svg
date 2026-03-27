@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fond vert forêt -->
+  <rect width="512" height="512" rx="112" fill="#2D5016"/>
+  <!-- Lettre E stylisée -->
+  <g fill="#F0EDE6">
+    <!-- Barre verticale -->
+    <rect x="148" y="148" width="52" height="216" rx="12"/>
+    <!-- Barre du haut -->
+    <rect x="148" y="148" width="216" height="52" rx="12"/>
+    <!-- Barre du milieu -->
+    <rect x="148" y="230" width="176" height="52" rx="12"/>
+    <!-- Barre du bas -->
+    <rect x="148" y="312" width="216" height="52" rx="12"/>
+  </g>
+</svg>

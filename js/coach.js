@@ -195,6 +195,24 @@ window.Coach = (() => {
     createFAB();
   }
 
-  return { init, open, close };
+  /* ------------------------------------------
+     APPEL RAPIDE (sans ouvrir le chat)
+     ------------------------------------------ */
+  async function quickAsk(message) {
+    try {
+      const context = await buildContext();
+      const resp = await fetch(EDGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.SUPABASE_ANON}` },
+        body: JSON.stringify({ messages: [{ role: 'user', content: message }], context: JSON.stringify(context) }),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!resp.ok) return null;
+      const { content } = await resp.json();
+      return content || null;
+    } catch (_) { return null; }
+  }
+
+  return { init, open, close, quickAsk };
 
 })();

@@ -1,8 +1,3 @@
-/* ============================================
-   WORKOUTS.JS — Séances, exercices, sets, warmup
-   Élev v2
-   ============================================ */
-
 window.Workouts = (() => {
 
   const S = {
@@ -266,22 +261,51 @@ window.Workouts = (() => {
     const dur  = Math.round((new Date(endedAt) - new Date(S.session.started_at)) / 60000);
     const sets = Object.values(S.loggedSets).reduce((s, a) => s + a.length, 0);
     const vol  = Object.values(S.loggedSets).reduce((v, a) => v + a.reduce((s, x) => s + x.reps * x.weight, 0), 0);
+    const prs  = Object.keys(S.prBest).filter(exId => {
+      const best = Math.max(...(S.loggedSets[exId] || []).map(s => s.weight), 0);
+      return best > (S.prBest[exId] || 0);
+    }).length;
+
+    const volStr = vol >= 1000 ? (vol/1000).toFixed(1)+'t' : vol+'kg';
     document.getElementById('workouts-content').innerHTML = `
-      <div style="text-align:center;padding:40px 0;">
-        <div style="font-size:3rem;margin-bottom:16px;">🏆</div>
-        <h2 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;margin-bottom:6px;">Séance terminée !</h2>
-        <p class="text-dim" style="margin-bottom:28px;">${S.routine.name}</p>
-        <div class="stat-row" style="margin-bottom:24px;">
+      <div style="text-align:center;padding:32px 0 16px;">
+        <div style="font-size:3rem;margin-bottom:12px;">🏆</div>
+        <h2 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;margin-bottom:4px;">Séance terminée !</h2>
+        <p class="text-dim" style="margin-bottom:24px;">${S.routine.name}</p>
+        <div class="stat-row" style="margin-bottom:20px;">
           <div class="stat-chip"><p class="stat-chip-value">${dur}</p><p class="stat-chip-label">min</p></div>
           <div class="stat-chip"><p class="stat-chip-value">${sets}</p><p class="stat-chip-label">sets</p></div>
-          <div class="stat-chip"><p class="stat-chip-value">${(vol/1000).toFixed(1)}t</p><p class="stat-chip-label">volume</p></div>
+          <div class="stat-chip"><p class="stat-chip-value">${volStr}</p><p class="stat-chip-label">volume</p></div>
+          ${prs ? `<div class="stat-chip"><p class="stat-chip-value" style="color:var(--color-gold);">${prs}🏆</p><p class="stat-chip-label">PR</p></div>` : ''}
+        </div>
+        <div id="session-ia-note" class="card card-accent-left" style="text-align:left;margin-bottom:20px;">
+          <p style="font-size:0.75rem;color:var(--cream-dim);margin-bottom:8px;">🤖 COACH IA</p>
+          <div style="display:flex;justify-content:center;padding:8px 0;"><div class="spinner"></div></div>
         </div>
         <button class="btn btn-primary btn-full btn-lg" id="btn-post-session">Retour à l'accueil</button>
       </div>`;
+
     document.getElementById('btn-post-session')?.addEventListener('click', () => {
       S.session = null; S.routine = null; AppState.switchTab('home'); setTimeout(init, 80);
     });
     showToast('Séance sauvegardée !', 'success');
+    if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
+    loadSessionIANote(dur, sets, vol, prs);
+  }
+
+  function loadSessionIANote(dur, sets, vol, prs) {
+    const el = document.getElementById('session-ia-note');
+    if (!el) return;
+    if (!window.Coach?.quickAsk) { el.style.display = 'none'; return; }
+    const prompt = `Analyse en 3 phrases max: routine "${S.routine.name}", ${dur} min, ${sets} sets, ${vol}kg` +
+      `${prs ? `, ${prs} PR(s)` : ''}. Donne un constat + 1 conseil pour la prochaine séance.`;
+    Coach.quickAsk(prompt).then(note => {
+      if (!document.getElementById('session-ia-note')) return;
+      el.innerHTML = note
+        ? `<p style="font-size:0.75rem;color:var(--cream-dim);margin-bottom:8px;">🤖 COACH IA</p>
+           <p style="color:var(--cream);font-size:0.9rem;line-height:1.6;">${note.replace(/\n/g,'<br>')}</p>`
+        : `<p style="color:var(--cream-dim);font-size:0.875rem;">Coach IA non disponible.</p>`;
+    });
   }
 
   // Modal "Autre sport"
@@ -372,7 +396,5 @@ window.Workouts = (() => {
   }
 
   document.addEventListener('tabchange', e => { if (e.detail.tab === 'workouts') init(); });
-
   return { init };
-
 })();
