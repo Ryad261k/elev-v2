@@ -107,24 +107,31 @@ window.HomeTab = (() => {
   function renderNutrition(tot) {
     const goals = loadGoals();
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = Math.round(v); };
-    const bar = (id, v, g) => { const el = document.getElementById(id); if (el) el.style.width = Math.min(v / (g || 1) * 100, 100) + '%'; };
 
     set('home-kcal',    tot.kcal);
     set('home-protein', tot.protein);
     set('home-carbs',   tot.carbs);
     set('home-fat',     tot.fat);
 
-    bar('home-protein-bar', tot.protein, goals.protein);
-    bar('home-carbs-bar',   tot.carbs,   goals.carbs);
-    bar('home-fat-bar',     tot.fat,     goals.fat);
-
-    // Ring SVG animation
-    const ring = document.getElementById('home-ring-fill');
-    if (ring) {
-      const CIRC = 226; // 2π × 36
-      const offset = CIRC * (1 - Math.min(tot.kcal / (goals.kcal || 1), 1));
-      ring.setAttribute('stroke-dashoffset', offset.toFixed(1));
+    // Goal kcal label + % badge
+    const goalEl = document.getElementById('home-goal-kcal');
+    if (goalEl) goalEl.textContent = goals.kcal;
+    const pctEl = document.getElementById('home-kcal-pct');
+    if (pctEl) {
+      const pct = Math.min(Math.round(tot.kcal / (goals.kcal || 1) * 100), 100);
+      pctEl.textContent = pct + '%';
     }
+
+    // Macro mini-rings (CIRC = 2π×16 ≈ 100.5)
+    const CIRC = 100.5;
+    const macroRing = (id, v, g) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.setAttribute('stroke-dashoffset', (CIRC * (1 - Math.min(v / (g || 1), 1))).toFixed(1));
+    };
+    macroRing('home-carbs-ring',   tot.carbs,   goals.carbs);
+    macroRing('home-protein-ring', tot.protein, goals.protein);
+    macroRing('home-fat-ring',     tot.fat,     goals.fat);
 
     // Remaining kcal in action card
     const remEl = document.getElementById('home-kcal-remaining');

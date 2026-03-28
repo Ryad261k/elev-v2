@@ -186,44 +186,51 @@
           </div>
         </header>
 
-        <!-- Ring card — nutrition du jour -->
+        <!-- Hero card — nutrition du jour -->
         <div class="ring-card" id="home-ring-card" onclick="AppState && AppState.switchTab('nutrition')" style="cursor:pointer;">
-          <div class="ring-wrap">
-            <svg viewBox="0 0 90 90" width="90" height="90" aria-hidden="true">
-              <circle class="ring-track" cx="45" cy="45" r="36"/>
-              <circle class="ring-fill" id="home-ring-fill" cx="45" cy="45" r="36"
-                stroke-dasharray="226" stroke-dashoffset="226"/>
-            </svg>
-            <div class="ring-center">
-              <div class="ring-val" id="home-kcal">0</div>
-              <div class="ring-unit">kcal</div>
+          <div class="ring-card-top">
+            <div>
+              <div class="ring-card-label">Calories du jour</div>
+              <div class="ring-card-kcal">
+                <span id="home-kcal">0</span><span class="ring-card-kcal-goal">/ <span id="home-goal-kcal">2400</span> kcal</span>
+              </div>
+            </div>
+            <div class="ring-card-pct" id="home-kcal-pct">0%</div>
+          </div>
+          <div class="ring-macro-rings">
+            <div class="ring-macro-ring-item">
+              <svg viewBox="0 0 44 44" width="52" height="52" aria-hidden="true">
+                <circle cx="22" cy="22" r="16" class="hmr-track"/>
+                <circle cx="22" cy="22" r="16" class="hmr-fill gluc" id="home-carbs-ring"
+                  stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 22 22)"/>
+              </svg>
+              <div class="hmr-val"><span id="home-carbs">0</span>g</div>
+              <div class="hmr-label">Glucides</div>
+            </div>
+            <div class="ring-macro-ring-item">
+              <svg viewBox="0 0 44 44" width="52" height="52" aria-hidden="true">
+                <circle cx="22" cy="22" r="16" class="hmr-track"/>
+                <circle cx="22" cy="22" r="16" class="hmr-fill prot" id="home-protein-ring"
+                  stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 22 22)"/>
+              </svg>
+              <div class="hmr-val"><span id="home-protein">0</span>g</div>
+              <div class="hmr-label">Protéines</div>
+            </div>
+            <div class="ring-macro-ring-item">
+              <svg viewBox="0 0 44 44" width="52" height="52" aria-hidden="true">
+                <circle cx="22" cy="22" r="16" class="hmr-track"/>
+                <circle cx="22" cy="22" r="16" class="hmr-fill lip" id="home-fat-ring"
+                  stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 22 22)"/>
+              </svg>
+              <div class="hmr-val"><span id="home-fat">0</span>g</div>
+              <div class="hmr-label">Lipides</div>
             </div>
           </div>
-          <div class="ring-info">
-            <div class="ring-title">Nutrition du jour</div>
-            <div class="ring-macro-row">
-              <div class="ring-macro-item">
-                <div class="ring-macro-label-row">
-                  <span class="ring-macro-name">Glucides</span>
-                  <span class="ring-macro-val"><span id="home-carbs">0</span>g</span>
-                </div>
-                <div class="ring-macro-bar"><div class="ring-macro-fill gluc" id="home-carbs-bar" style="width:0%;"></div></div>
-              </div>
-              <div class="ring-macro-item">
-                <div class="ring-macro-label-row">
-                  <span class="ring-macro-name">Protéines</span>
-                  <span class="ring-macro-val"><span id="home-protein">0</span>g</span>
-                </div>
-                <div class="ring-macro-bar"><div class="ring-macro-fill prot" id="home-protein-bar" style="width:0%;"></div></div>
-              </div>
-              <div class="ring-macro-item">
-                <div class="ring-macro-label-row">
-                  <span class="ring-macro-name">Lipides</span>
-                  <span class="ring-macro-val"><span id="home-fat">0</span>g</span>
-                </div>
-                <div class="ring-macro-bar"><div class="ring-macro-fill lip" id="home-fat-bar" style="width:0%;"></div></div>
-              </div>
-            </div>
+          <!-- Hidden bars kept for JS compat -->
+          <div style="display:none;">
+            <div id="home-carbs-bar"></div>
+            <div id="home-protein-bar"></div>
+            <div id="home-fat-bar"></div>
           </div>
         </div>
 
