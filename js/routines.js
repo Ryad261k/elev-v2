@@ -9,6 +9,25 @@ window.Routines = (() => {
   let draft = null;       // { id|null, name, exercises: [{exercise_id,name,muscle_group,sets,reps,weight}] }
   let allExercises = [];  // cache bibliothèque
 
+  /* ---- Méthodes avancées (localStorage) ---- */
+  function getMethodsKey(routineId) { return `elev-ex-methods-${routineId}`; }
+
+  function loadMethods(routineId) {
+    if (!routineId) return {};
+    try { return JSON.parse(localStorage.getItem(getMethodsKey(routineId)) || '{}'); }
+    catch { return {}; }
+  }
+
+  function saveMethod(routineId, exerciseId, method) {
+    if (!routineId) return;
+    const methods = loadMethods(routineId);
+    if (method === 'normal') { delete methods[exerciseId]; }
+    else { methods[exerciseId] = method; }
+    localStorage.setItem(getMethodsKey(routineId), JSON.stringify(methods));
+  }
+
+  const METHOD_LABELS = { normal: 'Normal', amrap: 'AMRAP', dropset: 'Drop Set', superset: 'Superset' };
+
   /* ---- Requêtes DB ---- */
   async function fetchRoutines() {
     const { data, error } = await DB.from('routines')
@@ -74,6 +93,7 @@ window.Routines = (() => {
     try {
       await DB.from('routine_exercises').delete().eq('routine_id', id);
       await DB.from('routines').delete().eq('id', id);
+      localStorage.removeItem(getMethodsKey(id));
       showToast('Routine supprimée', 'info');
     } catch (err) {
       console.error('[Routines] deleteRoutine:', err);
@@ -95,6 +115,11 @@ window.Routines = (() => {
             order_index: i, sets: e.sets, reps: e.reps, weight: e.weight,
           }))
         );
+      }
+      // Copier les méthodes avancées depuis localStorage
+      const srcMethods = loadMethods(id);
+      if (Object.keys(srcMethods).length) {
+        localStorage.setItem(getMethodsKey(newR.id), JSON.stringify(srcMethods));
       }
       showToast('Routine dupliquée ✓', 'success');
       renderList();
@@ -125,17 +150,26 @@ window.Routines = (() => {
         return;
       }
 
+      const METHOD_BADGE_LABELS = { amrap: '🔁 AMRAP', dropset: '📉 DROP SET', superset: '⚡ SUPERSET' };
       cnt.innerHTML = `
         <div class="section-header" style="margin-bottom:12px;">
           <h2 class="section-title">Mes routines</h2>
           <span class="badge badge-surface">${routines.length}</span>
         </div>
-        ${routines.map(r => `
+        ${routines.map(r => {
+          const methods = loadMethods(r.id);
+          const activeMethods = Object.values(methods).filter(m => m !== 'normal');
+          const uniqueMethods = [...new Set(activeMethods)];
+          const badgesHTML = uniqueMethods.map(m =>
+            `<span class="method-badge method-${m}" style="margin-right:4px;">${METHOD_BADGE_LABELS[m] || m}</span>`
+          ).join('');
+          return `
           <div class="routine-card card pressable" data-rid="${r.id}">
             <div class="flex items-center justify-between">
               <div class="list-item-content">
                 <p class="list-item-title">${r.name}</p>
                 <p class="list-item-subtitle">${r.routine_exercises.length} exercice${r.routine_exercises.length !== 1 ? 's' : ''}</p>
+                ${badgesHTML ? `<div style="margin-top:4px;">${badgesHTML}</div>` : ''}
               </div>
               <div class="flex gap-8">
                 <button class="btn btn-icon" data-edit="${r.id}" aria-label="Modifier">✏️</button>
@@ -143,7 +177,8 @@ window.Routines = (() => {
                 <button class="btn btn-icon" data-delete="${r.id}" aria-label="Supprimer">🗑</button>
               </div>
             </div>
-          </div>`).join('')}`;
+          </div>`;
+        }).join('')}`;
 
       cnt.addEventListener('click', async e => {
         const editBtn      = e.target.closest('[data-edit]');
@@ -225,7 +260,11 @@ window.Routines = (() => {
     if (!list) return;
     if (!draft.exercises.length) { list.innerHTML = ''; return; }
 
-    list.innerHTML = draft.exercises.map((ex, i) => `
+    const methods = loadMethods(draft.id);
+
+    list.innerHTML = draft.exercises.map((ex, i) => {
+      const method = methods[ex.exercise_id] || 'normal';
+      return `
       <div class="editor-ex-row card" data-idx="${i}">
         <div class="flex items-center justify-between" style="margin-bottom:10px;">
           <div style="flex:1;min-width:0;">
@@ -255,7 +294,14 @@ window.Routines = (() => {
                    value="${ex.weight}" min="0" step="0.5" inputmode="decimal">
           </div>
         </div>
-      </div>`).join('');
+        <select class="input method-select" data-ex-id="${ex.exercise_id}" style="height:36px;font-size:0.8125rem;margin-top:4px;">
+          <option value="normal"   ${method === 'normal'   ? 'selected' : ''}>Normal</option>
+          <option value="amrap"    ${method === 'amrap'    ? 'selected' : ''}>AMRAP (dernière série max)</option>
+          <option value="dropset"  ${method === 'dropset'  ? 'selected' : ''}>Drop Set (-20%)</option>
+          <option value="superset" ${method === 'superset' ? 'selected' : ''}>Superset avec suivant</option>
+        </select>
+      </div>`;
+    }).join('');
 
     // Délégation d'événements sur la liste
     list.addEventListener('click', e => {
@@ -267,6 +313,11 @@ window.Routines = (() => {
       if (remove) { draft.exercises.splice(parseInt(remove.dataset.remove), 1); renderEditorExercises(); }
     });
     list.addEventListener('input', e => {
+      // Méthode avancée
+      if (e.target.classList.contains('method-select')) {
+        saveMethod(draft.id, e.target.dataset.exId, e.target.value);
+        return;
+      }
       const field = e.target.dataset.field;
       const idx   = parseInt(e.target.dataset.idx);
       if (!field || isNaN(idx)) return;

@@ -258,12 +258,20 @@ window.Onboarding = (() => {
   /* ------------------------------------------
      COMPLÉTION
      ------------------------------------------ */
-  function complete() {
+  async function complete() {
     const uid   = DB.userId();
     const goals = calcTDEE(data);
     localStorage.setItem(`elev-profile-${uid}`, JSON.stringify(data));
     if (goals) localStorage.setItem(`elev-nutrition-goals-${uid}`, JSON.stringify(goals));
     localStorage.setItem(doneKey(), '1');
+
+    // Sync vers Supabase user_metadata (persistance cross-device)
+    try {
+      await window.SupabaseClient.auth.updateUser({
+        data: { elev_profile: data, elev_goals: goals, elev_onboarding_done: true }
+      });
+    } catch (_) {}
+
     hide();
     window.showToast?.(`Bienvenue, ${data.prenom} ! 🎉`, 'success', 4000);
     // Recharge nutrition avec nouveaux objectifs

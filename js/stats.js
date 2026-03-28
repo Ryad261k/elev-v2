@@ -74,10 +74,30 @@ window.Stats = (() => {
     </svg>`;
   }
 
+  /* ── Skeleton ────────────────────────────── */
+  function showSkeleton(container) {
+    container.innerHTML = `
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line" style="width:40%;"></div>
+        <div class="skeleton skeleton-line" style="width:80%;"></div>
+        <div class="skeleton skeleton-line-sm"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line" style="width:55%;"></div>
+        <div class="skeleton skeleton-line" style="width:90%;"></div>
+        <div class="skeleton skeleton-line-sm"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line" style="width:35%;"></div>
+        <div class="skeleton skeleton-line" style="width:75%;"></div>
+      </div>`;
+  }
+
   /* ── Rendu principal ─────────────────────── */
   async function _render() {
     const cnt = document.getElementById('stats-content');
     if (!cnt) return;
+    showSkeleton(cnt);
     try {
       const allSets = await fetchAllSets();
       if (!allSets.length) { cnt.innerHTML = ''; return; }

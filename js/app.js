@@ -60,6 +60,18 @@ const App = window.App = (() => {
   function onAuthenticated(session) {
     AppState.session = session;
     AppState.user    = session.user;
+
+    // Restauration depuis user_metadata si localStorage vide
+    const meta = session.user?.user_metadata;
+    if (meta?.elev_onboarding_done) {
+      const uid = session.user.id;
+      if (!localStorage.getItem(`elev-onboarding-done-${uid}`)) {
+        if (meta.elev_profile) localStorage.setItem(`elev-profile-${uid}`, JSON.stringify(meta.elev_profile));
+        if (meta.elev_goals)   localStorage.setItem(`elev-nutrition-goals-${uid}`, JSON.stringify(meta.elev_goals));
+        localStorage.setItem(`elev-onboarding-done-${uid}`, '1');
+      }
+    }
+
     updateGreeting();
     showScreen('app');
     bindNavbar();

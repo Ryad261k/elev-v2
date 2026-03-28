@@ -14,6 +14,24 @@ window.FoodPicker = (() => {
     localStorage.setItem('elev-recent-foods', JSON.stringify(recents.slice(0, 10)));
   }
 
+  /* ── Favoris (localStorage) ────────────────── */
+  function getFavoriteFoods() {
+    const uid = window.AppState?.user?.id || 'local';
+    try { return JSON.parse(localStorage.getItem(`elev-food-favorites-${uid}`) || '[]'); } catch { return []; }
+  }
+  function toggleFavorite(food) {
+    const uid = window.AppState?.user?.id || 'local';
+    let favs = getFavoriteFoods();
+    const idx = favs.findIndex(f => f.name === food.name);
+    if (idx >= 0) favs.splice(idx, 1);
+    else favs.unshift(food);
+    localStorage.setItem(`elev-food-favorites-${uid}`, JSON.stringify(favs.slice(0, 30)));
+    return idx < 0; // true = ajouté
+  }
+  function isFavorite(foodName) {
+    return getFavoriteFoods().some(f => f.name === foodName);
+  }
+
   /* ── Modal shell ───────────────────────────── */
   function ensureModal() {
     let modal = document.getElementById('modal-add-food');
@@ -64,17 +82,24 @@ window.FoodPicker = (() => {
     setHeader(catLabel, null);
     const body = document.getElementById('food-modal-body');
     if (!body) return;
-    const recents = getRecentFoods();
+    const recents   = getRecentFoods();
+    const favorites = getFavoriteFoods();
     const recentsHtml = recents.length ? `
       <div id="food-recents-section" style="padding:8px 16px 0;">
         <p style="font-size:0.75rem;font-weight:600;color:var(--cream-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Récents</p>
         <div style="display:flex;flex-wrap:wrap;gap:6px;" id="food-recents-chips"></div>
+      </div>` : '';
+    const favoritesHtml = favorites.length ? `
+      <div id="food-favorites-section" style="padding:8px 16px 0;">
+        <p style="font-size:0.75rem;font-weight:600;color:var(--cream-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Favoris</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="food-favorites-chips"></div>
       </div>` : '';
     body.innerHTML = `
       <div class="food-search-bar">
         <input type="search" id="food-search-input" class="input" placeholder="Rechercher un aliment…" autocomplete="off" inputmode="search" style="margin:0;">
       </div>
       ${recentsHtml}
+      ${favoritesHtml}
       <div class="food-quick-tiles">
         <button class="food-quick-tile" id="qt-custom">
           <span class="food-quick-tile-icon">✏️</span><span>Personnalisé</span>
@@ -103,6 +128,21 @@ window.FoodPicker = (() => {
           chip.textContent = food.name;
           chip.addEventListener('click', () => showFoodDetail(food));
           chipsEl.appendChild(chip);
+        });
+      }
+    }
+
+    // Chips favoris cliquables
+    if (favorites.length) {
+      const favChipsEl = body.querySelector('#food-favorites-chips');
+      if (favChipsEl) {
+        favorites.slice(0, 6).forEach(food => {
+          const chip = document.createElement('button');
+          chip.className = 'badge badge-surface';
+          chip.style.cssText = 'cursor:pointer;padding:5px 10px;font-size:0.8125rem;border:none;';
+          chip.textContent = '⭐ ' + food.name;
+          chip.addEventListener('click', () => showFoodDetail(food));
+          favChipsEl.appendChild(chip);
         });
       }
     }
@@ -152,12 +192,20 @@ window.FoodPicker = (() => {
           <p class="food-list-sub">100g · ${f.protein}P ${f.carbs}G ${f.fat}L</p>
         </div>
         <span class="food-list-kcal">${f.kcal} kcal</span>
+        <button class="food-fav-btn${isFavorite(f.name) ? ' active' : ''}" data-fi="${i}" aria-label="Favori">${isFavorite(f.name) ? '⭐' : '☆'}</button>
         <button class="food-list-add" data-fi="${i}" aria-label="Ajouter">+</button>
       </div>`).join('');
 
     list.querySelectorAll('.food-list-row').forEach((row, i) => {
       row.querySelector('.food-list-info')?.addEventListener('click', () => showFoodDetail(foods[i]));
       row.querySelector('.food-list-add')?.addEventListener('click', e => { e.stopPropagation(); showFoodDetail(foods[i]); });
+      row.querySelector('.food-fav-btn')?.addEventListener('click', e => {
+        e.stopPropagation();
+        const added = toggleFavorite(foods[i]);
+        const btn = e.currentTarget;
+        btn.classList.toggle('active', added);
+        btn.textContent = added ? '⭐' : '☆';
+      });
     });
   }
 
@@ -224,7 +272,9 @@ window.FoodPicker = (() => {
       : '';
 
     body.innerHTML = `
-      <div class="food-detail-hero">
+      <div class="food-detail-hero" style="position:relative;">
+        <button class="food-fav-btn${isFavorite(food.name) ? ' active' : ''}" id="food-detail-fav-btn"
+          style="position:absolute;top:0;right:0;font-size:1.4rem;padding:4px 8px;" aria-label="Favori">${isFavorite(food.name) ? '⭐' : '☆'}</button>
         <p class="food-detail-hero-name">${food.name}</p>
         <p class="food-detail-hero-sub">Pour 100g</p>
       </div>
@@ -287,6 +337,14 @@ window.FoodPicker = (() => {
     qtyInp.addEventListener('input',   () => { drum.set(parseInt(qtyInp.value) || 1, true); updatePreview(); });
     unitSel.addEventListener('change', () => { if (unitSel.value !== 'g') { qtyInp.value = '1'; drum.set(1, true); } updatePreview(); });
     updatePreview();
+
+    body.querySelector('#food-detail-fav-btn')?.addEventListener('click', () => {
+      const btn = body.querySelector('#food-detail-fav-btn');
+      const added = toggleFavorite(food);
+      btn.classList.toggle('active', added);
+      btn.textContent = added ? '⭐' : '☆';
+      showToast(added ? 'Ajouté aux favoris ✓' : 'Retiré des favoris', added ? 'success' : 'info');
+    });
 
     body.querySelector('#btn-create-portion')?.addEventListener('click', () => {
       const form = body.querySelector('#food-portion-form');

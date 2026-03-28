@@ -70,6 +70,38 @@ window.Profile = (() => {
     } catch { showToast('Erreur lors de l\'export', 'error'); }
   }
 
+  /* ── Avatar (localStorage) ──────────────── */
+  function avatarKey() { return `elev-avatar-${DB.userId()}`; }
+
+  function getAvatar() {
+    try { return localStorage.getItem(avatarKey()); } catch { return null; }
+  }
+
+  function handleAvatarUpload(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 200;
+        const ratio = Math.min(MAX / img.width, MAX / img.height);
+        canvas.width  = Math.round(img.width  * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const b64 = canvas.toDataURL('image/jpeg', 0.8);
+        localStorage.setItem(avatarKey(), b64);
+        const avatarEl = document.getElementById('profile-avatar-img');
+        if (avatarEl) { avatarEl.src = b64; avatarEl.style.display = 'block'; }
+        const placeholderEl = document.getElementById('profile-avatar-placeholder');
+        if (placeholderEl) placeholderEl.style.display = 'none';
+        showToast('Photo mise à jour ✓', 'success');
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
   /* ── Modal ───────────────────────────────── */
   async function open() {
     let modal = document.getElementById('modal-profile');
@@ -91,12 +123,24 @@ window.Profile = (() => {
     const uid  = DB.userId();
     const ob   = JSON.parse(localStorage.getItem(`elev-profile-${uid}`) || 'null');
     const email = AppState.user?.email || '—';
-    const name  = ob?.name || email.split('@')[0].split(/[._]/)[0];
+    const name  = ob?.prenom || email.split('@')[0].split(/[._]/)[0];
+    const avatar = getAvatar();
 
     body.innerHTML = `
       <!-- Identité -->
       <div class="card" style="text-align:center;padding:24px 16px;">
-        <div style="width:64px;height:64px;border-radius:50%;background:var(--accent-primary-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.75rem;">👤</div>
+        <div style="position:relative;width:72px;height:72px;margin:0 auto 12px;cursor:pointer;" id="avatar-wrapper">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--accent-primary-soft);
+            display:flex;align-items:center;justify-content:center;font-size:2rem;overflow:hidden;"
+            id="profile-avatar-placeholder"${avatar ? ' style="display:none;"' : ''}>👤</div>
+          <img id="profile-avatar-img" src="${avatar || ''}"
+            style="width:72px;height:72px;border-radius:50%;object-fit:cover;position:absolute;top:0;left:0;${avatar ? '' : 'display:none;'}"
+            alt="Avatar">
+          <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-radius:50%;
+            background:var(--accent-primary);display:flex;align-items:center;justify-content:center;
+            font-size:0.75rem;color:#fff;">📷</div>
+          <input type="file" id="avatar-upload-input" accept="image/*" style="display:none;" capture="user">
+        </div>
         <p style="font-size:1.25rem;font-weight:600;color:var(--cream);">${name.charAt(0).toUpperCase() + name.slice(1)}</p>
         <p class="card-subtitle">${email}</p>
       </div>
@@ -121,6 +165,15 @@ window.Profile = (() => {
       </div>`;
 
     requestAnimationFrame(() => modal.classList.add('open'));
+
+    // Bindings avatar
+    const avatarWrapper = body.querySelector('#avatar-wrapper');
+    const avatarInput   = body.querySelector('#avatar-upload-input');
+    avatarWrapper?.addEventListener('click', () => avatarInput?.click());
+    avatarInput?.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) handleAvatarUpload(file);
+    });
 
     // Bindings
     body.querySelector('#btn-export-csv').addEventListener('click', downloadCSV);

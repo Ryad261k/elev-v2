@@ -254,13 +254,34 @@ window.History = (() => {
   }
 
   /* ------------------------------------------
+     SKELETON
+     ------------------------------------------ */
+  function showSkeleton(container) {
+    container.innerHTML = `
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line" style="width:40%;"></div>
+        <div class="skeleton skeleton-line" style="width:80%;"></div>
+        <div class="skeleton skeleton-line-sm"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line" style="width:55%;"></div>
+        <div class="skeleton skeleton-line" style="width:90%;"></div>
+        <div class="skeleton skeleton-line-sm"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-line" style="width:35%;"></div>
+        <div class="skeleton skeleton-line" style="width:75%;"></div>
+      </div>`;
+  }
+
+  /* ------------------------------------------
      RENDU PRINCIPAL
      ------------------------------------------ */
   async function render() {
     const cnt = document.getElementById('history-content');
     if (!cnt) return;
 
-    cnt.innerHTML = `<div class="empty-state" style="margin-top:48px;"><div class="spinner"></div></div>`;
+    showSkeleton(cnt);
 
     try {
       const [sessions, allDates, allSets, volSessions] = await Promise.all([

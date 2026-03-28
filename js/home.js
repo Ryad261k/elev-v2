@@ -235,9 +235,29 @@ window.HomeTab = (() => {
     if (monthEl) monthEl.textContent = stats.monthCount;
   }
 
+  /* ── Skeleton ────────────────────────────── */
+  function showSkeletonHome() {
+    const workoutCard = document.getElementById('home-workout-card');
+    if (workoutCard) {
+      workoutCard.innerHTML = `
+        <div class="skeleton skeleton-line" style="width:55%;margin-bottom:12px;"></div>
+        <div class="skeleton skeleton-line" style="width:80%;"></div>
+        <div class="skeleton skeleton-line-sm"></div>`;
+    }
+    const nutCard = document.getElementById('home-nutrition-card');
+    if (nutCard) {
+      nutCard.innerHTML = `
+        <div class="skeleton skeleton-line" style="width:40%;margin-bottom:12px;"></div>
+        <div class="skeleton skeleton-line" style="width:90%;"></div>
+        <div class="skeleton skeleton-line-sm"></div>
+        <div class="skeleton skeleton-line" style="width:70%;margin-top:4px;"></div>`;
+    }
+  }
+
   /* ── Refresh complet ─────────────────────── */
   async function refresh() {
     if (!DB.userId()) return;
+    showSkeletonHome();
     const [tot, session, stats, routine] = await Promise.all([
       fetchTodayNutrition(), fetchTodaySession(), fetchActivityStats(), fetchNextRoutine()
     ]);

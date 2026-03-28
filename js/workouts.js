@@ -4,7 +4,17 @@ window.Workouts = (() => {
     session: null, routine: null,
     loggedSets: {}, notes: {},
     prBest: {},    clockTimer: null,
+    methods: {},   // { [exerciseId]: 'normal'|'amrap'|'dropset'|'superset' }
+    exerciseOrder: [], // liste ordonnée des exercise.id pour Superset
   };
+
+  const METHOD_LABELS = { amrap: '🔁 AMRAP', dropset: '📉 DROP SET', superset: '⚡ SUPERSET' };
+
+  function loadSessionMethods(routineId) {
+    if (!routineId) return {};
+    try { return JSON.parse(localStorage.getItem(`elev-ex-methods-${routineId}`) || '{}'); }
+    catch { return {}; }
+  }
 
   // Warmup auto-calculé (jamais sauvegardé)
   function calcWarmup(w) {
@@ -81,6 +91,8 @@ window.Workouts = (() => {
       const exercises = await fetchRoutineExercises(routineId);
       S.session = sess; S.routine = { id: routineId, name: routineName };
       S.loggedSets = {}; S.notes = {}; S.prBest = {};
+      S.methods = loadSessionMethods(routineId);
+      S.exerciseOrder = exercises.map(re => re.exercise.id);
       exercises.forEach(re => { S.loggedSets[re.exercise.id] = []; });
       await renderSession(exercises);
     } catch (err) {
@@ -120,8 +132,20 @@ window.Workouts = (() => {
       if (prev.length) S.prBest[re.exercise.id] = Math.max(...prev.map(s => s.weight || 0));
       list.insertAdjacentHTML('beforeend', buildExerciseCard(re, prev));
     }
+    // Mettre à jour les hints superset (les noms des exercices suivants sont maintenant dans le DOM)
+    exercises.forEach((re, idx) => {
+      const method = S.methods[re.exercise.id] || 'normal';
+      if (method === 'superset') {
+        const hint = document.getElementById(`superset-hint-${re.exercise.id}`);
+        if (hint) {
+          const nextId = idx < exercises.length - 1 ? exercises[idx + 1].exercise.id : null;
+          const nextName = nextId ? (document.getElementById(`card-title-${nextId}`)?.textContent || 'exercice suivant') : 'exercice suivant';
+          hint.innerHTML = `<span class="method-badge method-superset">⚡ Enchaîne avec → ${nextName}</span>`;
+        }
+      }
+    });
     exercises.forEach(re => {
-      for (let i = 1; i <= re.sets; i++) appendSetRow(re.exercise.id, i, re.reps, re.weight);
+      for (let i = 1; i <= re.sets; i++) appendSetRow(re.exercise.id, i, re.reps, re.weight, i === re.sets);
     });
 
     clearInterval(S.clockTimer);
@@ -153,15 +177,35 @@ window.Workouts = (() => {
   function buildExerciseCard(re, prevSets) {
     const ex = re.exercise;
     const wu = calcWarmup(re.weight);
+    const method = S.methods[ex.id] || 'normal';
     const prevHTML = prevSets.length
       ? prevSets.map(s => `<span class="badge badge-surface">${s.reps}×${s.weight}kg</span>`).join('')
       : '<span class="workout-label" style="opacity:.5;">Première fois</span>';
     const wuHTML = wu.map(w => `<span class="badge badge-surface">${w.label} ${w.reps}×${w.w}kg</span>`).join('');
+    const methodBadge = method !== 'normal'
+      ? `<span class="method-badge method-${method}" style="margin-left:6px;">${METHOD_LABELS[method]}</span>`
+      : '';
+
+    // Superset : trouver le nom de l'exercice suivant
+    let supersetHTML = '';
+    if (method === 'superset') {
+      const idx = S.exerciseOrder.indexOf(ex.id);
+      const nextId = idx !== -1 && idx < S.exerciseOrder.length - 1 ? S.exerciseOrder[idx + 1] : null;
+      const nextName = nextId
+        ? (document.getElementById(`card-title-${nextId}`)?.textContent || '…')
+        : null;
+      supersetHTML = `<div id="superset-hint-${ex.id}" class="workout-meta-block" style="margin-bottom:6px;">
+        <span class="method-badge method-superset">⚡ Enchaîne avec → ${nextName || '…'}</span>
+      </div>`;
+    }
+
     return `
-      <div class="card" style="margin-bottom:12px;">
+      <div class="card" style="margin-bottom:12px;" data-ex-card="${ex.id}">
         <div class="card-header">
           <div>
-            <p class="card-title">${ex.name}</p>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+              <p class="card-title" id="card-title-${ex.id}">${ex.name}</p>${methodBadge}
+            </div>
             <p class="card-subtitle">${ex.muscle_group ? ex.muscle_group + ' · ' : ''}${re.sets}×${re.reps} @ ${re.weight}kg</p>
           </div>
           <button class="btn btn-icon" data-note-btn="${ex.id}" aria-label="Note" style="font-size:1rem;">📝</button>
@@ -183,27 +227,35 @@ window.Workouts = (() => {
           <span style="width:50px;text-align:center;">RPE</span>
         </div>
         <div id="sets-${ex.id}" class="sets-list"></div>
+        ${supersetHTML}
         <button class="btn btn-secondary btn-sm btn-full" style="margin-top:8px;"
           data-add-set="${ex.id}" data-reps="${re.reps}" data-weight="${re.weight}">+ Set</button>
       </div>`;
   }
 
   // Ajouter une ligne de set
-  function appendSetRow(exId, n, defaultReps, defaultWeight) {
+  // isLast : indique si c'est la dernière série normale (pour AMRAP / Drop Set)
+  function appendSetRow(exId, n, defaultReps, defaultWeight, isLast) {
     const list = document.getElementById(`sets-${exId}`);
     if (!list) return;
+    const method = S.methods[exId] || 'normal';
+    const isAmrapLast = isLast && method === 'amrap';
     const el = document.createElement('div');
     el.className = 'swipeable';
     el.innerHTML = `
       <div class="swipe-delete-bg">🗑</div>
       <div class="swipe-content set-row">
         <span class="set-num">${n}</span>
-        <input type="number" class="input set-input" value="${defaultReps}" min="1" max="99" inputmode="numeric" aria-label="Répétitions">
+        <input type="number" class="input set-input" value="${isAmrapLast ? '' : defaultReps}"
+          min="1" max="999" inputmode="numeric" aria-label="Répétitions"
+          placeholder="${isAmrapLast ? 'max' : ''}">
         <span class="set-sep">×</span>
         <input type="number" class="input set-input" value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
         <span class="set-sep">kg</span>
         <input type="number" class="input set-input set-rpe" min="1" max="10" inputmode="numeric" placeholder="—" aria-label="RPE" style="width:50px;flex-shrink:0;">
-        <button class="check-circle" style="border:none;cursor:pointer;flex-shrink:0;" aria-label="Valider">✓</button>
+        <button class="check-circle${isAmrapLast ? ' amrap-btn' : ''}" style="border:none;cursor:pointer;flex-shrink:0;" aria-label="Valider">
+          ${isAmrapLast ? 'MAX' : '✓'}
+        </button>
       </div>`;
     list.appendChild(el);
     initSwipe(el, () => {
@@ -215,6 +267,14 @@ window.Workouts = (() => {
       const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
       const reps = parseInt(rIn.value) || 0, weight = parseFloat(wIn.value) || 0;
       const rpe  = rpeIn ? (parseInt(rpeIn.value) || null) : null;
+
+      // AMRAP : ne pas valider si reps vide
+      if (isAmrapLast && !reps) {
+        showToast('Entre le nombre de répétitions max', 'error');
+        rIn.focus();
+        return;
+      }
+
       const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
       const found = arr.find(s => s.n === n);
       if (found) { found.reps = reps; found.weight = weight; found.rpe = rpe; }
@@ -236,6 +296,52 @@ window.Workouts = (() => {
         btn.style.color = '#fff';
         showToast(`Série ${n} · ${reps}×${weight}kg`, 'success', 1800);
       }
+      window.RestTimer?.start(90);
+
+      // Drop Set : après validation de la dernière série normale, proposer un set drop automatiquement
+      if (isLast && method === 'dropset') {
+        const dropWeight = Math.round((weight * 0.8) / 2.5) * 2.5;
+        const nextN = list.children.length + 1;
+        appendDropSetRow(exId, nextN, dropWeight);
+      }
+    });
+  }
+
+  // Ajouter une ligne de drop set (set bonus après la dernière série normale)
+  function appendDropSetRow(exId, n, dropWeight) {
+    const list = document.getElementById(`sets-${exId}`);
+    if (!list) return;
+    // Éviter les doublons : si un drop set existe déjà, ne pas en ajouter un autre
+    if (list.querySelector('.drop-set-row')) return;
+    const el = document.createElement('div');
+    el.className = 'swipeable';
+    el.innerHTML = `
+      <div class="swipe-delete-bg">🗑</div>
+      <div class="swipe-content set-row drop-set-row">
+        <span class="set-num" style="color:#5B8DB8;">${n}</span>
+        <input type="number" class="input set-input" placeholder="max" min="1" max="999" inputmode="numeric" aria-label="Répétitions">
+        <span class="set-sep">×</span>
+        <input type="number" class="input set-input" value="${dropWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
+        <span class="set-sep">kg</span>
+        <input type="number" class="input set-input set-rpe" min="1" max="10" inputmode="numeric" placeholder="—" aria-label="RPE" style="width:50px;flex-shrink:0;">
+        <button class="check-circle" style="border:none;cursor:pointer;flex-shrink:0;background:rgba(91,141,184,0.2);color:#5B8DB8;" aria-label="Valider drop set">DROP</button>
+      </div>`;
+    list.appendChild(el);
+    initSwipe(el, () => {
+      el.remove();
+      list.querySelectorAll('.set-num').forEach((s, i) => { s.textContent = i + 1; });
+    });
+    el.querySelector('.check-circle').addEventListener('click', ev => {
+      const inputs = el.querySelectorAll('.set-input');
+      const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
+      const reps = parseInt(rIn.value) || 0, weight = parseFloat(wIn.value) || 0;
+      const rpe  = rpeIn ? (parseInt(rpeIn.value) || null) : null;
+      if (!reps) { showToast('Entre le nombre de répétitions max pour le drop set', 'error'); rIn.focus(); return; }
+      const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
+      arr.push({ n, reps, weight, rpe });
+      ev.currentTarget.style.background = 'var(--accent)';
+      ev.currentTarget.style.color = '#fff';
+      showToast(`Drop set ${n} · ${reps}×${weight}kg`, 'success', 1800);
       window.RestTimer?.start(90);
     });
   }
