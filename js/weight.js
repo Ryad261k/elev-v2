@@ -130,7 +130,7 @@ window.Weight = (() => {
       </header>
 
       <!-- Poids actuel + saisie -->
-      <div class="card" style="margin-bottom:12px;">
+      <div class="card" style="margin-bottom:12px;margin-top:16px;">
         ${lastEntry ? `
           <div class="weight-hero">
             <span class="weight-hero-value">${lastEntry.value.toFixed(1)}</span>
