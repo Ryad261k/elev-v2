@@ -101,12 +101,20 @@ const App = window.App = (() => {
   function updateGreeting() {
     const el = document.getElementById('home-greeting');
     if (!el || !AppState.user) return;
-    // Tente d'extraire un prénom depuis l'email
-    const email      = AppState.user.email || '';
-    const localPart  = email.split('@')[0];                        // "louis.david650"
-    const firstName  = localPart.split(/[._]/)[0];                 // "louis"
-    const name       = firstName.charAt(0).toUpperCase() + firstName.slice(1);
-    el.textContent   = `Bonjour, ${name}`;
+    // Préfère le prénom du profil, sinon dérive depuis l'email
+    const uid     = AppState.user.id;
+    const profile = (() => { try { return JSON.parse(localStorage.getItem(`elev-profile-${uid}`) || 'null'); } catch { return null; } })();
+    const prenom  = profile?.prenom;
+    let name;
+    if (prenom) {
+      name = prenom.charAt(0).toUpperCase() + prenom.slice(1);
+    } else {
+      const email = AppState.user.email || '';
+      const localPart = email.split('@')[0];
+      const firstName = localPart.split(/[._]/)[0];
+      name = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+    }
+    el.textContent = `Bonjour, ${name}`;
   }
 
   /* ------------------------------------------
