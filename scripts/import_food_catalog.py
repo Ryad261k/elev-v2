@@ -66,6 +66,7 @@ def main():
                 "fibres": float(row["fibres"] or 0) if row["fibres"] else None,
                 "sodium": float(row["sodium"] or 0) if row["sodium"] else None,
                 "source": row["source"] or "off",
+                "sold_in_fr": row.get("sold_in_fr", "").lower() in ("true", "1", "yes"),
                 "popularity": int(float(row["popularity"] or 0)),
             })
         post_json(endpoint, payload, api_key)
