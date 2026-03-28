@@ -24,9 +24,9 @@ window.WorkoutsRender = (() => {
             <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">En cours</p>
             <h2 style="font-family:var(--font-serif);font-style:italic;font-size:1.5rem;color:var(--cream);">${s.routine.name}</h2>
           </div>
-          <div style="background:rgba(200,149,108,0.15);border:1px solid rgba(200,149,108,0.3);border-radius:100px;padding:8px 14px;text-align:center;flex-shrink:0;">
-            <div style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--accent-warm);line-height:1;" id="session-elapsed-val">0:00</div>
-            <div style="font-size:0.5625rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-warm);opacity:0.7;margin-top:2px;">Durée</div>
+          <div style="background:rgba(122,184,147,0.12);border:1px solid rgba(122,184,147,0.22);border-radius:100px;padding:8px 14px;text-align:center;flex-shrink:0;">
+            <div style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--accent);line-height:1;" id="session-elapsed-val">0:00</div>
+            <div style="font-size:0.5625rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);opacity:0.7;margin-top:2px;">Durée</div>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -111,6 +111,10 @@ window.WorkoutsRender = (() => {
     const cfg       = window.Workouts.getMethodConfig(method);
     const ML        = { amrap:'🔁 AMRAP', dropset:'📉 DROP SET', superset:'⚡ SUPERSET', restpause:'⏱ REST-PAUSE', tempo:'🎵 TEMPO', htfr:'🏋 HTFR', giantset:'🔥 GIANT SET' };
 
+    const prevBestWeight = s.prBest[ex.id] || (prevSets.length ? Math.max(...prevSets.map(p => p.weight || 0)) : 0);
+    const prBadge  = prevBestWeight > 0
+      ? `<span class="pr-badge">🏅 PR ${prevBestWeight} kg</span>`
+      : '';
     const prevHTML = prevSets.length
       ? prevSets.map(p => `<span class="badge badge-surface">${p.reps}×${p.weight}kg${p.rpe ? ` @${p.rpe}` : ''}</span>`).join('')
       : '<span style="font-size:0.75rem;color:var(--cream-dim);opacity:.6;">Première fois</span>';
@@ -141,7 +145,10 @@ window.WorkoutsRender = (() => {
               <p style="font-size:0.75rem;color:var(--cream-dim);margin-top:2px;">${ex.muscle_group ? ex.muscle_group + ' · ' : ''}${re.sets}×${re.reps} @ ${re.weight}kg</p>
             </div>
           </div>
-          <button class="btn btn-icon" data-note-btn="${ex.id}" aria-label="Note" style="font-size:1rem;flex-shrink:0;">📝</button>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            ${prBadge}
+            <button class="btn btn-icon" data-note-btn="${ex.id}" aria-label="Note" style="font-size:1rem;">📝</button>
+          </div>
         </div>
         <div style="padding:0 16px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
           <span style="font-size:0.6875rem;color:var(--cream-dim);">Dernière fois :</span>
