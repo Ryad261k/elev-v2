@@ -1,7 +1,7 @@
 /* ── Confirm bottom sheet ──────────────────────── */
 window.showConfirm = function(msg, onConfirm, {
   title = '', danger = true,
-  confirmLabel = 'Confirmer', cancelLabel = 'Annuler'
+  confirmLabel = 'Confirmer', cancelLabel = 'Annuler', onCancel = null
 } = {}) {
   const overlay = document.createElement('div');
   overlay.className = 'confirm-overlay';
@@ -29,7 +29,7 @@ window.showConfirm = function(msg, onConfirm, {
   }
 
   overlay.querySelector('.confirm-ok').addEventListener('click', () => close(true));
-  overlay.querySelector('.confirm-cancel').addEventListener('click', () => close(false));
+  overlay.querySelector('.confirm-cancel').addEventListener('click', () => { close(false); if (onCancel) onCancel(); });
   overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
   document.body.appendChild(overlay);
 };

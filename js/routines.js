@@ -126,18 +126,8 @@ window.Routines = (() => {
   function showRoutineMoreMenu(id) {
     showConfirm('Supprimer ou dupliquer cette séance ?', () => confirmDelete(id), {
       title: 'Options', danger: true, confirmLabel: '🗑 Supprimer', cancelLabel: '⧉ Dupliquer',
+      onCancel: () => duplicateRoutine(id),
     });
-    setTimeout(() => {
-      const cancelBtn = document.querySelector('.confirm-cancel');
-      if (cancelBtn) {
-        const clone = cancelBtn.cloneNode(true);
-        cancelBtn.parentNode.replaceChild(clone, cancelBtn);
-        clone.addEventListener('click', () => {
-          document.querySelector('.confirm-overlay')?.remove();
-          duplicateRoutine(id);
-        });
-      }
-    }, 50);
   }
 
   async function duplicateRoutine(id) {
