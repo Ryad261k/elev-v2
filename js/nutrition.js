@@ -11,10 +11,10 @@ window.Nutrition = (() => {
   }
 
   const CATEGORIES = [
-    { name: 'Petit-déjeuner', emoji: '☕', kcalGoal: 720 },
-    { name: 'Déjeuner',       emoji: '🍽️', kcalGoal: 696 },
-    { name: 'Dîner',          emoji: '🌙', kcalGoal: 696 },
-    { name: 'Collation',      emoji: '🍎', kcalGoal: 288 },
+    { name: 'Petit-déjeuner', emoji: '☕',  kcalGoal: 720, color: 'rgba(122,184,147,0.5)' },
+    { name: 'Déjeuner',       emoji: '🍽️', kcalGoal: 696, color: 'rgba(107,184,229,0.5)' },
+    { name: 'Dîner',          emoji: '🌙', kcalGoal: 696, color: 'rgba(200,149,108,0.5)' },
+    { name: 'Collation',      emoji: '🍎', kcalGoal: 288, color: 'rgba(201,168,76,0.5)'  },
   ];
   let navBound  = false;
   let activeCat = '';
@@ -103,10 +103,10 @@ window.Nutrition = (() => {
         ? `<div class="meal-empty-v2" data-cat="${cat.name}">＋ Ajouter un aliment ou une recette</div>`
         : `<div class="meal-items-v2">${itemsHtml}</div>`;
       return `
-        <div class="meal-card-v2">
+        <div class="meal-card-v2" style="border-left:3px solid ${cat.color};">
           <div class="meal-header-v2">
             <div class="meal-left-v2">
-              <div class="meal-emoji-box">${cat.emoji}</div>
+              <div class="meal-emoji-box" style="background:${cat.color.replace('0.5)', '0.12)')}; border-color:${cat.color.replace('0.5)', '0.25)')};">${cat.emoji}</div>
               <div>
                 <div class="meal-name-v2">${cat.name}</div>
                 <div class="meal-count-v2">${items.length > 0 ? items.length + ' aliment' + (items.length > 1 ? 's' : '') : 'Aucun aliment'}</div>
