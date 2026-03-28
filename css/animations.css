@@ -4,6 +4,25 @@
    ============================================ */
 
 /* ==========================================
+   MAQUETTE ANIMATIONS
+   ========================================== */
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ringFill {
+  from { stroke-dashoffset: var(--ring-max, 226); }
+  to   { stroke-dashoffset: var(--ring-offset, 80); }
+}
+
+@keyframes barFill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ==========================================
    TAB TRANSITIONS
    ========================================== */
 .tab-content {
@@ -232,6 +251,53 @@
 }
 
 /* ==========================================
+   TAB TRANSITION (slide horizontal)
+   ========================================== */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.tab-enter-right {
+  animation: slideInRight 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+.tab-enter-left {
+  animation: slideInLeft 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ==========================================
+   PULL TO REFRESH INDICATOR
+   ========================================== */
+.ptr-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -60px);
+  z-index: 400;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+  font-family: var(--font-sans);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+}
+
+.ptr-indicator.visible {
+  transform: translate(-50%, 12px);
+}
+
+/* ==========================================
    PRESS SCALE (generic interactive)
    ========================================== */
 .pressable {
@@ -242,4 +308,15 @@
 .pressable:active {
   transform: scale(0.96);
   opacity: 0.85;
+}
+
+/* ==========================================
+   REDUCED MOTION
+   ========================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

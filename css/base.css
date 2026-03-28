@@ -3,42 +3,43 @@
    Élev v2
    ============================================ */
 
-/* --- Variables — Light Theme (default) --- */
+/* --- Variables — Dark Theme (default — maquette Élev) --- */
 :root {
   /* Backgrounds */
-  --bg-dark:     #F0EDE6;   /* page background — beige chaud */
-  --bg-card:     #FFFFFF;   /* cartes — blanc */
-  --bg-surface:  #EAE7DF;   /* surfaces secondaires */
+  --bg-dark:     #0e0e0c;               /* fond principal */
+  --bg-card:     rgba(255,255,255,0.06); /* cartes — glass */
+  --bg-surface:  rgba(255,255,255,0.04); /* surfaces secondaires */
 
   /* Text */
-  --cream:       #1A1A1A;   /* texte principal */
-  --cream-dim:   #8A8A8A;   /* texte secondaire */
+  --cream:       #f5f0e8;   /* texte principal */
+  --cream-dim:   #a89f91;   /* texte secondaire */
 
   /* Accent */
-  --accent:      #4CAF7D;   /* vert émeraude — progress, actif */
-  --accent-warm: #E67E22;   /* orange — calories */
+  --accent:      #7AB893;   /* vert — progress, actif */
+  --accent-warm: #c8956c;   /* orange — calories */
+  --accent-blue: #8b9ec8;   /* bleu — lipides */
 
   /* CTA & Semantic */
-  --accent-primary:      #2D5016;   /* vert forêt profond — CTA principaux */
-  --accent-primary-soft: #E8F0E0;   /* vert très clair — badges, highlights */
-  --btn-primary-text:    #FFFFFF;   /* texte sur boutons primaires */
+  --accent-primary:      #7AB893;
+  --accent-primary-soft: rgba(122, 184, 147, 0.15);
+  --btn-primary-text:    #0e0e0c;
 
   /* Border & Shadows */
-  --border:      #E8E4DC;   /* séparateurs subtils */
-  --card-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  --border:      rgba(255,255,255,0.09);
+  --card-shadow: none;
 
   /* Semantic colors */
   --color-danger:  #C0392B;
   --color-warning: #E67E22;
   --color-gold:    #C9A84C;
   --color-info:    #5B8DB8;
-  --color-carbs:   #6DB8E5;
+  --color-carbs:   #8b9ec8;
 
   /* Layout */
-  --radius:      12px;
+  --radius:      16px;
   --font-serif:  'DM Serif Display', Georgia, serif;
   --font-sans:   'DM Sans', system-ui, sans-serif;
-  --nav-height:  64px;
+  --nav-height:  68px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* z-index layers */
@@ -49,40 +50,42 @@
   --z-toast:     300;
 }
 
-/* --- Variables — Dark Theme --- */
-[data-theme="dark"] {
-  --bg-dark:     #1a1a18;
-  --bg-card:     #242420;
-  --bg-surface:  #2e2e2a;
-  --cream:       #f5f0e8;
-  --cream-dim:   #b8b0a0;
-  --accent:      #7AB893;
-  --accent-warm: #c8956c;
-  --accent-primary:      #7AB893;
-  --accent-primary-soft: rgba(122, 184, 147, 0.15);
-  --btn-primary-text:    #1a1a18;
-  --border:      #3a3a36;
-  --card-shadow: none;
-  --color-carbs: #8b9cf0;
+/* --- Light Theme override --- */
+[data-theme="light"] {
+  --bg-dark:     #F0EDE6;
+  --bg-card:     #FFFFFF;
+  --bg-surface:  #EAE7DF;
+  --cream:       #1A1A1A;
+  --cream-dim:   #8A8A8A;
+  --accent:      #4CAF7D;
+  --accent-warm: #E67E22;
+  --accent-blue: #6DB8E5;
+  --accent-primary:      #2D5016;
+  --accent-primary-soft: #E8F0E0;
+  --btn-primary-text:    #FFFFFF;
+  --border:      #E8E4DC;
+  --card-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  --color-carbs: #6DB8E5;
+  --radius:      12px;
 }
 
-/* --- Apply prefers-color-scheme if no manual override --- */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg-dark:     #1a1a18;
-    --bg-card:     #242420;
-    --bg-surface:  #2e2e2a;
-    --cream:       #f5f0e8;
-    --cream-dim:   #b8b0a0;
-    --accent:      #7AB893;
-    --accent-warm: #c8956c;
-    --accent-primary:      #7AB893;
-    --accent-primary-soft: rgba(122, 184, 147, 0.15);
-    --btn-primary-text:    #1a1a18;
-    --border:      #3a3a36;
-    --card-shadow: none;
-    --color-carbs: #8b9cf0;
-  }
+/* --- Dark theme explicit (same as root) --- */
+[data-theme="dark"] {
+  --bg-dark:     #0e0e0c;
+  --bg-card:     rgba(255,255,255,0.06);
+  --bg-surface:  rgba(255,255,255,0.04);
+  --cream:       #f5f0e8;
+  --cream-dim:   #a89f91;
+  --accent:      #7AB893;
+  --accent-warm: #c8956c;
+  --accent-blue: #8b9ec8;
+  --accent-primary:      #7AB893;
+  --accent-primary-soft: rgba(122, 184, 147, 0.15);
+  --btn-primary-text:    #0e0e0c;
+  --border:      rgba(255,255,255,0.09);
+  --card-shadow: none;
+  --color-carbs: #8b9ec8;
+  --radius:      16px;
 }
 
 /* --- Prevent flash on load --- */
@@ -144,11 +147,23 @@ a {
   text-decoration: none;
 }
 
+/* --- Grain overlay (all pages) --- */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* --- Layout --- */
 #app {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
+  position: relative;
+  z-index: 1;
 }
 
 .tab-content {
@@ -161,13 +176,15 @@ a {
 .tab-content.active {
   display: flex;
   flex-direction: column;
+  background: var(--bg-dark);
 }
+
 
 .page-container {
   width: 100%;
-  max-width: 480px;
+  max-width: 430px;
   margin: 0 auto;
-  padding: 20px 16px 0;
+  padding: 0 20px 16px;
 }
 
 /* --- Scrollbar --- */

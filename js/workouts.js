@@ -79,6 +79,16 @@ window.Workouts = (() => {
     return [];
   }
 
+  function showWorkoutsTab() {
+    const btn = document.getElementById('nav-tab-workouts');
+    if (btn) btn.style.display = '';
+  }
+
+  function hideWorkoutsTab() {
+    const btn = document.getElementById('nav-tab-workouts');
+    if (btn) btn.style.display = 'none';
+  }
+
   // Démarrer une séance
   async function startSession(routineId, routineName) {
     const cnt = document.getElementById('workouts-content');
@@ -94,6 +104,8 @@ window.Workouts = (() => {
       S.methods = loadSessionMethods(routineId);
       S.exerciseOrder = exercises.map(re => re.exercise.id);
       exercises.forEach(re => { S.loggedSets[re.exercise.id] = []; });
+      showWorkoutsTab();
+      AppState.switchTab('workouts');
       await renderSession(exercises);
     } catch (err) {
       console.error('[Workouts] startSession:', err);
@@ -106,31 +118,40 @@ window.Workouts = (() => {
   async function renderSession(exercises) {
     const cnt = document.getElementById('workouts-content');
     const started = new Date(S.session.started_at);
+    const totalEx = exercises.length;
     cnt.innerHTML = `
-      <div class="workout-header">
-        <div class="flex items-center justify-between">
+      <div style="padding:52px 20px 16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
           <div>
-            <p class="page-header-eyebrow" style="color:var(--accent);">● En cours</p>
-            <h2 class="workout-session-title">${S.routine.name}</h2>
+            <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">En cours</p>
+            <h2 style="font-family:var(--font-serif);font-style:italic;font-size:1.5rem;color:var(--cream);">${S.routine.name}</h2>
           </div>
-          <div class="flex gap-8">
-            <button class="btn btn-ghost btn-sm" id="btn-other-sport">Autre sport</button>
-            <button class="btn btn-danger btn-sm" id="btn-finish">Terminer</button>
+          <div style="background:rgba(200,149,108,0.15);border:1px solid rgba(200,149,108,0.3);border-radius:100px;padding:8px 14px;text-align:center;flex-shrink:0;">
+            <div style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--accent-warm);line-height:1;" id="session-elapsed-val">0:00</div>
+            <div style="font-size:0.5625rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-warm);opacity:0.7;margin-top:2px;">Durée</div>
           </div>
         </div>
-        <div class="flex gap-12" style="margin-top:6px;">
-          <span class="text-dim" id="session-elapsed" style="font-size:0.8125rem;">0 min</span>
-          <span style="font-size:0.8125rem;color:var(--cream-dim);">Bonne séance 💪</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:0.6875rem;color:var(--cream-dim);" id="session-progress-label">${totalEx} exercice${totalEx > 1 ? 's' : ''}</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" id="btn-other-sport" style="font-size:0.75rem;padding:5px 10px;">Autre sport</button>
+            <button class="btn btn-danger btn-sm" id="btn-finish" style="font-size:0.75rem;padding:5px 10px;">Terminer</button>
+          </div>
+        </div>
+        <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden;">
+          <div id="session-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),rgba(122,184,147,0.6));border-radius:100px;transition:width 0.5s ease;"></div>
         </div>
       </div>
-      <div id="exercises-list"></div>`;
+      <span style="display:none;" id="session-elapsed">0 min</span>
+      <div id="exercises-list" style="padding:0 20px 100px;"></div>`;
 
     const list = document.getElementById('exercises-list');
-    for (const re of exercises) {
+    for (let i = 0; i < exercises.length; i++) {
+      const re = exercises[i];
       const prev = await fetchPrevSets(re.exercise.id);
       // Stocker le meilleur poids précédent pour détection PR
       if (prev.length) S.prBest[re.exercise.id] = Math.max(...prev.map(s => s.weight || 0));
-      list.insertAdjacentHTML('beforeend', buildExerciseCard(re, prev));
+      list.insertAdjacentHTML('beforeend', buildExerciseCard(re, prev, i));
     }
     // Mettre à jour les hints superset (les noms des exercices suivants sont maintenant dans le DOM)
     exercises.forEach((re, idx) => {
@@ -151,9 +172,13 @@ window.Workouts = (() => {
     clearInterval(S.clockTimer);
     S.clockTimer = setInterval(() => {
       const el = document.getElementById('session-elapsed');
-      if (!el) { clearInterval(S.clockTimer); return; }
-      el.textContent = `${Math.floor((Date.now() - started) / 60000)} min`;
-    }, 30000);
+      const valEl = document.getElementById('session-elapsed-val');
+      if (!el && !valEl) { clearInterval(S.clockTimer); return; }
+      const mins = Math.floor((Date.now() - started) / 60000);
+      const secs = Math.floor(((Date.now() - started) % 60000) / 1000);
+      if (el) el.textContent = `${mins} min`;
+      if (valEl) valEl.textContent = `${mins}:${String(secs).padStart(2,'0')}`;
+    }, 1000);
 
     list.addEventListener('click', e => {
       const addBtn  = e.target.closest('[data-add-set]');
@@ -174,19 +199,18 @@ window.Workouts = (() => {
   }
 
   // HTML d'une carte exercice
-  function buildExerciseCard(re, prevSets) {
+  function buildExerciseCard(re, prevSets, exIdx) {
     const ex = re.exercise;
     const wu = calcWarmup(re.weight);
     const method = S.methods[ex.id] || 'normal';
     const prevHTML = prevSets.length
       ? prevSets.map(s => `<span class="badge badge-surface">${s.reps}×${s.weight}kg</span>`).join('')
-      : '<span class="workout-label" style="opacity:.5;">Première fois</span>';
+      : '<span style="font-size:0.75rem;color:var(--cream-dim);opacity:.6;">Première fois</span>';
     const wuHTML = wu.map(w => `<span class="badge badge-surface">${w.label} ${w.reps}×${w.w}kg</span>`).join('');
     const methodBadge = method !== 'normal'
-      ? `<span class="method-badge method-${method}" style="margin-left:6px;">${METHOD_LABELS[method]}</span>`
+      ? `<span class="method-badge method-${method}">${METHOD_LABELS[method]}</span>`
       : '';
 
-    // Superset : trouver le nom de l'exercice suivant
     let supersetHTML = '';
     if (method === 'superset') {
       const idx = S.exerciseOrder.indexOf(ex.id);
@@ -194,42 +218,51 @@ window.Workouts = (() => {
       const nextName = nextId
         ? (document.getElementById(`card-title-${nextId}`)?.textContent || '…')
         : null;
-      supersetHTML = `<div id="superset-hint-${ex.id}" class="workout-meta-block" style="margin-bottom:6px;">
+      supersetHTML = `<div id="superset-hint-${ex.id}" style="padding:0 16px 10px;">
         <span class="method-badge method-superset">⚡ Enchaîne avec → ${nextName || '…'}</span>
       </div>`;
     }
 
     return `
-      <div class="card" style="margin-bottom:12px;" data-ex-card="${ex.id}">
-        <div class="card-header">
-          <div>
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
-              <p class="card-title" id="card-title-${ex.id}">${ex.name}</p>${methodBadge}
+      <div class="exercise-card-v2" data-ex-card="${ex.id}">
+        <div class="exercise-header-v2">
+          <div style="display:flex;align-items:center;flex:1;min-width:0;gap:10px;">
+            <div class="exercise-num-v2">${(exIdx || 0) + 1}</div>
+            <div style="min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <p style="font-weight:600;color:var(--cream);font-size:0.9375rem;" id="card-title-${ex.id}">${ex.name}</p>
+                ${methodBadge}
+              </div>
+              <p style="font-size:0.75rem;color:var(--cream-dim);margin-top:2px;">${ex.muscle_group ? ex.muscle_group + ' · ' : ''}${re.sets}×${re.reps} @ ${re.weight}kg</p>
             </div>
-            <p class="card-subtitle">${ex.muscle_group ? ex.muscle_group + ' · ' : ''}${re.sets}×${re.reps} @ ${re.weight}kg</p>
           </div>
-          <button class="btn btn-icon" data-note-btn="${ex.id}" aria-label="Note" style="font-size:1rem;">📝</button>
+          <button class="btn btn-icon" data-note-btn="${ex.id}" aria-label="Note" style="font-size:1rem;flex-shrink:0;">📝</button>
         </div>
-        <div class="workout-meta-block">
-          <p class="workout-label">Dernière fois</p>
-          <div class="flex gap-4" style="flex-wrap:wrap;margin-top:4px;">${prevHTML}</div>
+        <div style="padding:0 16px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
+          <span style="font-size:0.6875rem;color:var(--cream-dim);">Dernière fois :</span>
+          ${prevHTML}
         </div>
-        ${wu.length ? `<div class="workout-meta-block"><p class="workout-label">Échauffement</p><div class="flex gap-4" style="flex-wrap:wrap;margin-top:4px;">${wuHTML}</div></div>` : ''}
-        <div id="note-${ex.id}" style="display:none;margin-bottom:10px;">
+        ${wu.length ? `<div style="padding:0 16px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
+          <span style="font-size:0.6875rem;color:var(--cream-dim);">Échauffement :</span>
+          ${wuHTML}
+        </div>` : ''}
+        <div id="note-${ex.id}" style="display:none;padding:0 16px 10px;">
           <textarea class="input" rows="2" placeholder="Note…" data-note-for="${ex.id}" style="font-size:0.875rem;"></textarea>
         </div>
-        <div class="set-row" style="opacity:0.55;font-size:0.6875rem;padding:4px 12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;background:transparent;">
-          <span class="set-num">#</span>
-          <span style="width:66px;text-align:center;">Reps</span>
-          <span class="set-sep">×</span>
-          <span style="width:66px;text-align:center;">Poids</span>
-          <span class="set-sep"></span>
-          <span style="width:50px;text-align:center;">RPE</span>
+        <div class="sets-table-v2">
+          <div class="sets-header-v2">
+            <span style="text-align:center;">#</span>
+            <span style="text-align:center;">Reps</span>
+            <span style="text-align:center;">Poids (kg)</span>
+            <span></span>
+          </div>
+          <div id="sets-${ex.id}" class="sets-list"></div>
         </div>
-        <div id="sets-${ex.id}" class="sets-list"></div>
         ${supersetHTML}
-        <button class="btn btn-secondary btn-sm btn-full" style="margin-top:8px;"
-          data-add-set="${ex.id}" data-reps="${re.reps}" data-weight="${re.weight}">+ Set</button>
+        <div style="padding:8px 16px 14px;">
+          <button class="btn btn-secondary btn-sm btn-full"
+            data-add-set="${ex.id}" data-reps="${re.reps}" data-weight="${re.weight}">+ Ajouter un set</button>
+        </div>
       </div>`;
   }
 
@@ -244,29 +277,26 @@ window.Workouts = (() => {
     el.className = 'swipeable';
     el.innerHTML = `
       <div class="swipe-delete-bg">🗑</div>
-      <div class="swipe-content set-row">
-        <span class="set-num">${n}</span>
-        <input type="number" class="input set-input" value="${isAmrapLast ? '' : defaultReps}"
+      <div class="swipe-content set-row-v2 current">
+        <span class="set-num-v2">${n}</span>
+        <input type="number" class="input set-input-v2" value="${isAmrapLast ? '' : defaultReps}"
           min="1" max="999" inputmode="numeric" aria-label="Répétitions"
           placeholder="${isAmrapLast ? 'max' : ''}">
-        <span class="set-sep">×</span>
-        <input type="number" class="input set-input" value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
-        <span class="set-sep">kg</span>
-        <input type="number" class="input set-input set-rpe" min="1" max="10" inputmode="numeric" placeholder="—" aria-label="RPE" style="width:50px;flex-shrink:0;">
-        <button class="check-circle${isAmrapLast ? ' amrap-btn' : ''}" style="border:none;cursor:pointer;flex-shrink:0;" aria-label="Valider">
-          ${isAmrapLast ? 'MAX' : '✓'}
+        <input type="number" class="input set-input-v2" value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
+        <button class="btn-check-v2${isAmrapLast ? ' amrap-btn' : ''}" aria-label="Valider">
+          ${isAmrapLast ? '∞' : '✓'}
         </button>
       </div>`;
     list.appendChild(el);
     initSwipe(el, () => {
       el.remove();
-      list.querySelectorAll('.set-num').forEach((s, i) => { s.textContent = i + 1; });
+      list.querySelectorAll('.set-num-v2').forEach((s, i) => { s.textContent = i + 1; });
     });
-    el.querySelector('.check-circle').addEventListener('click', ev => {
-      const inputs = el.querySelectorAll('.set-input');
-      const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
+    el.querySelector('.btn-check-v2').addEventListener('click', ev => {
+      const row = el.querySelector('.swipe-content');
+      const inputs = el.querySelectorAll('.set-input-v2');
+      const rIn = inputs[0], wIn = inputs[1];
       const reps = parseInt(rIn.value) || 0, weight = parseFloat(wIn.value) || 0;
-      const rpe  = rpeIn ? (parseInt(rpeIn.value) || null) : null;
 
       // AMRAP : ne pas valider si reps vide
       if (isAmrapLast && !reps) {
@@ -277,28 +307,31 @@ window.Workouts = (() => {
 
       const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
       const found = arr.find(s => s.n === n);
-      if (found) { found.reps = reps; found.weight = weight; found.rpe = rpe; }
-      else arr.push({ n, reps, weight, rpe });
+      if (found) { found.reps = reps; found.weight = weight; }
+      else arr.push({ n, reps, weight });
 
       const prevBest = S.prBest[exId];
       const isPR = prevBest !== undefined && weight > prevBest;
       if (weight > (S.prBest[exId] || 0)) S.prBest[exId] = weight;
 
       const btn = ev.currentTarget;
+      row.classList.remove('current');
+      row.classList.add('done');
       if (isPR) {
         btn.textContent = '🏆';
-        btn.style.background = 'var(--color-gold)';
-        btn.style.color = '#fff';
+        btn.classList.add('done');
+        btn.style.background = 'var(--color-gold,#f5a623)';
+        btn.style.borderColor = 'var(--color-gold,#f5a623)';
         showToast(`🏆 Nouveau record ! ${weight} kg`, 'success', 3500);
         if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
       } else {
-        btn.style.background = 'var(--accent)';
-        btn.style.color = '#fff';
+        btn.classList.add('done');
+        btn.textContent = '✓';
         showToast(`Série ${n} · ${reps}×${weight}kg`, 'success', 1800);
       }
       window.RestTimer?.start(90);
 
-      // Drop Set : après validation de la dernière série normale, proposer un set drop automatiquement
+      // Drop Set : après validation de la dernière série normale
       if (isLast && method === 'dropset') {
         const dropWeight = Math.round((weight * 0.8) / 2.5) * 2.5;
         const nextN = list.children.length + 1;
@@ -317,30 +350,30 @@ window.Workouts = (() => {
     el.className = 'swipeable';
     el.innerHTML = `
       <div class="swipe-delete-bg">🗑</div>
-      <div class="swipe-content set-row drop-set-row">
-        <span class="set-num" style="color:#5B8DB8;">${n}</span>
-        <input type="number" class="input set-input" placeholder="max" min="1" max="999" inputmode="numeric" aria-label="Répétitions">
-        <span class="set-sep">×</span>
-        <input type="number" class="input set-input" value="${dropWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
-        <span class="set-sep">kg</span>
-        <input type="number" class="input set-input set-rpe" min="1" max="10" inputmode="numeric" placeholder="—" aria-label="RPE" style="width:50px;flex-shrink:0;">
-        <button class="check-circle" style="border:none;cursor:pointer;flex-shrink:0;background:rgba(91,141,184,0.2);color:#5B8DB8;" aria-label="Valider drop set">DROP</button>
+      <div class="swipe-content set-row-v2 current drop-set-row">
+        <span class="set-num-v2" style="color:var(--accent-blue,#8b9ec8);">${n}</span>
+        <input type="number" class="input set-input-v2" placeholder="max" min="1" max="999" inputmode="numeric" aria-label="Répétitions">
+        <input type="number" class="input set-input-v2" value="${dropWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
+        <button class="btn-check-v2" style="border-color:rgba(139,158,200,0.4);color:var(--accent-blue,#8b9ec8);font-size:0.5625rem;font-weight:700;" aria-label="Valider drop set">DROP</button>
       </div>`;
     list.appendChild(el);
     initSwipe(el, () => {
       el.remove();
-      list.querySelectorAll('.set-num').forEach((s, i) => { s.textContent = i + 1; });
+      list.querySelectorAll('.set-num-v2').forEach((s, i) => { s.textContent = i + 1; });
     });
-    el.querySelector('.check-circle').addEventListener('click', ev => {
-      const inputs = el.querySelectorAll('.set-input');
-      const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
+    el.querySelector('.btn-check-v2').addEventListener('click', ev => {
+      const row = el.querySelector('.swipe-content');
+      const inputs = el.querySelectorAll('.set-input-v2');
+      const rIn = inputs[0], wIn = inputs[1];
       const reps = parseInt(rIn.value) || 0, weight = parseFloat(wIn.value) || 0;
-      const rpe  = rpeIn ? (parseInt(rpeIn.value) || null) : null;
       if (!reps) { showToast('Entre le nombre de répétitions max pour le drop set', 'error'); rIn.focus(); return; }
       const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
-      arr.push({ n, reps, weight, rpe });
-      ev.currentTarget.style.background = 'var(--accent)';
-      ev.currentTarget.style.color = '#fff';
+      arr.push({ n, reps, weight });
+      const btn = ev.currentTarget;
+      row.classList.remove('current');
+      row.classList.add('done');
+      btn.classList.add('done');
+      btn.textContent = '✓';
       showToast(`Drop set ${n} · ${reps}×${weight}kg`, 'success', 1800);
       window.RestTimer?.start(90);
     });
@@ -393,7 +426,7 @@ window.Workouts = (() => {
 
     const volStr = vol >= 1000 ? (vol/1000).toFixed(1)+'t' : vol+'kg';
     document.getElementById('workouts-content').innerHTML = `
-      <div style="text-align:center;padding:32px 0 16px;">
+      <div style="text-align:center;padding:52px 20px 16px;">
         <div style="font-size:3rem;margin-bottom:12px;">🏆</div>
         <h2 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;margin-bottom:4px;">Séance terminée !</h2>
         <p class="text-dim" style="margin-bottom:24px;">${S.routine.name}</p>
@@ -411,7 +444,10 @@ window.Workouts = (() => {
       </div>`;
 
     document.getElementById('btn-post-session')?.addEventListener('click', () => {
-      S.session = null; S.routine = null; AppState.switchTab('home'); setTimeout(init, 80);
+      S.session = null; S.routine = null;
+      hideWorkoutsTab();
+      AppState.switchTab('home');
+      setTimeout(init, 80);
     });
     showToast('Séance sauvegardée !', 'success');
     if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
@@ -482,37 +518,55 @@ window.Workouts = (() => {
     }
   }
 
+  // Démarrer une routine par id (appelé depuis routines.js)
+  async function startRoutine(routineId) {
+    const routines = await fetchRoutines();
+    const r = routines.find(r => r.id === routineId);
+    if (r) startSession(r.id, r.name);
+  }
+
   // Init — sélection de routine
   async function init() {
     if (S.session) return;
     const cnt = document.getElementById('workouts-content');
     if (!cnt) return;
-    cnt.innerHTML = '<div class="workout-spinner"><div class="spinner spinner-lg"></div></div>';
+    cnt.innerHTML = '<div style="display:flex;justify-content:center;padding:80px 0;"><div class="spinner spinner-lg"></div></div>';
     try {
       const routines = await fetchRoutines();
       if (!routines.length) {
-        cnt.innerHTML = `<div class="empty-state" style="margin-top:48px;">
-          <span class="empty-state-icon">📋</span>
-          <p class="empty-state-title">Aucune routine</p>
-          <p class="empty-state-text">Crée une routine dans l'onglet Routines</p>
-          <button class="btn btn-primary btn-lg" style="margin-top:16px;"
-            onclick="AppState.switchTab('routines')">Créer une routine</button></div>`;
+        cnt.innerHTML = `
+          <div style="text-align:center;padding:80px 20px 24px;">
+            <div style="font-size:3rem;margin-bottom:12px;">📋</div>
+            <p style="font-family:var(--font-serif);font-style:italic;font-size:1.5rem;color:var(--cream);margin-bottom:8px;">Aucune routine</p>
+            <p style="color:var(--cream-dim);font-size:0.875rem;margin-bottom:24px;">Crée une routine dans l'onglet Routines</p>
+            <button class="btn btn-primary btn-lg" onclick="AppState.switchTab('routines')">Créer une routine</button>
+          </div>`;
         return;
       }
       cnt.innerHTML = `
-        <div class="section-header"><h2 class="section-title">Choisir une routine</h2></div>
-        ${routines.map(r => `
-          <div class="list-item pressable" data-rid="${r.id}" data-rname="${r.name}">
-            <div class="list-item-icon">💪</div>
-            <div class="list-item-content"><p class="list-item-title">${r.name}</p></div>
-            <span class="list-item-right">›</span>
-          </div>`).join('')}
-        <div style="margin-top:16px;">
-          <button class="btn btn-ghost btn-full" id="btn-other-sport-init">Autre sport / activité</button>
+        <div style="padding:52px 20px 16px;">
+          <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);margin-bottom:20px;">Séance</h1>
+          <div id="routine-picker-list"></div>
+          <button class="btn btn-ghost btn-full" style="margin-top:4px;" id="btn-other-sport-init">Autre sport / activité</button>
         </div>`;
-      cnt.querySelectorAll('[data-rid]').forEach(el =>
-        el.addEventListener('click', () => startSession(el.dataset.rid, el.dataset.rname))
-      );
+      const pickerList = cnt.querySelector('#routine-picker-list');
+      routines.forEach((r, i) => {
+        const card = document.createElement('div');
+        card.className = `routine-card-v2${i === 0 ? ' featured' : ''}`;
+        card.style.cssText = 'margin-bottom:10px;cursor:pointer;';
+        card.dataset.rid = r.id;
+        card.dataset.rname = r.name;
+        card.innerHTML = `
+          <div class="routine-top">
+            <div class="routine-icon">${i === 0 ? '⭐' : '💪'}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="routine-name-v2">${r.name}</div>
+            </div>
+            <button class="btn-start-pill">Démarrer</button>
+          </div>`;
+        card.addEventListener('click', () => startSession(r.id, r.name));
+        pickerList.appendChild(card);
+      });
       document.getElementById('btn-other-sport-init')?.addEventListener('click', showOtherSport);
     } catch (err) {
       console.error('[Workouts] init:', err);
@@ -520,6 +574,22 @@ window.Workouts = (() => {
     }
   }
 
+  // Restaurer l'état du tab séance au chargement (si session en cours)
   document.addEventListener('tabchange', e => { if (e.detail.tab === 'workouts') init(); });
-  return { init };
+
+  // Vérifier au démarrage de l'app si une séance est en cours (réouverture de page)
+  async function checkActiveSession() {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await DB.from('sessions')
+        .select('id, started_at, routine_id, routine:routines(name)')
+        .eq('user_id', DB.userId())
+        .is('ended_at', null)
+        .gte('started_at', today + 'T00:00:00')
+        .limit(1);
+      if (data?.[0]) showWorkoutsTab();
+    } catch (_) {}
+  }
+
+  return { init, startRoutine, checkActiveSession };
 })();

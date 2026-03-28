@@ -138,58 +138,105 @@ window.Routines = (() => {
 
       if (!routines.length) {
         cnt.innerHTML = `
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;padding-top:52px;margin-bottom:20px;">
+            <div>
+              <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Mes programmes</p>
+              <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Routines</h1>
+            </div>
+            <button class="btn-start-pill" id="btn-new-routine-empty">＋ Nouvelle</button>
+          </div>
           <div class="empty-state" style="margin-top:48px;">
             <span class="empty-state-icon">📋</span>
             <p class="empty-state-title">Aucune routine</p>
             <p class="empty-state-text">Crée ta première routine d'entraînement</p>
-            <button class="btn btn-primary btn-lg" style="margin-top:16px;" id="btn-new-routine-empty">
-              Créer une routine
-            </button>
           </div>`;
         document.getElementById('btn-new-routine-empty')?.addEventListener('click', () => openEditor(null));
         return;
       }
 
+      const ROUTINE_ICONS = ['🔥', '💪', '🦵', '🏋️', '🎯', '⚡', '🌊', '🏃'];
+      const MUSCLE_COLORS = {
+        'Pectoraux': 'primary', 'Épaules': 'primary', 'Dos': 'primary', 'Biceps': 'primary',
+        'Jambes': 'primary', 'Quadriceps': 'primary', 'Fessiers': 'primary',
+      };
       const METHOD_BADGE_LABELS = { amrap: '🔁 AMRAP', dropset: '📉 DROP SET', superset: '⚡ SUPERSET' };
-      cnt.innerHTML = `
-        <div class="section-header" style="margin-bottom:12px;">
-          <h2 class="section-title">Mes routines</h2>
-          <span class="badge badge-surface">${routines.length}</span>
+
+      // Header with new + button + day chips
+      const headerHtml = `
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;padding-top:52px;margin-bottom:20px;">
+          <div>
+            <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Mes programmes</p>
+            <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Routines</h1>
+          </div>
+          <button class="btn-start-pill" id="btn-new-routine-header">＋ Nouvelle</button>
         </div>
-        ${routines.map(r => {
-          const methods = loadMethods(r.id);
-          const activeMethods = Object.values(methods).filter(m => m !== 'normal');
-          const uniqueMethods = [...new Set(activeMethods)];
-          const badgesHTML = uniqueMethods.map(m =>
-            `<span class="method-badge method-${m}" style="margin-right:4px;">${METHOD_BADGE_LABELS[m] || m}</span>`
-          ).join('');
-          return `
-          <div class="routine-card card pressable" data-rid="${r.id}">
-            <div class="flex items-center justify-between">
-              <div class="list-item-content">
-                <p class="list-item-title">${r.name}</p>
-                <p class="list-item-subtitle">${r.routine_exercises.length} exercice${r.routine_exercises.length !== 1 ? 's' : ''}</p>
-                ${badgesHTML ? `<div style="margin-top:4px;">${badgesHTML}</div>` : ''}
+        <div class="days-filter">
+          <div class="day-chip active">Tous</div>
+          <div class="day-chip">Lundi</div>
+          <div class="day-chip">Mardi</div>
+          <div class="day-chip">Mercredi</div>
+          <div class="day-chip">Jeudi</div>
+          <div class="day-chip">Vendredi</div>
+          <div class="day-chip">Weekend</div>
+        </div>
+        <p class="home-section-label" style="margin-top:24px;">Programmes actifs</p>`;
+
+      const routineCards = routines.map((r, idx) => {
+        const methods = loadMethods(r.id);
+        const activeMethods = Object.values(methods).filter(m => m !== 'normal');
+        const uniqueMethods = [...new Set(activeMethods)];
+        const badgesHTML = uniqueMethods.map(m =>
+          `<span class="method-badge method-${m}">${METHOD_BADGE_LABELS[m] || m}</span>`
+        ).join('');
+        const exCount = r.routine_exercises.length;
+        const icon = ROUTINE_ICONS[idx % ROUTINE_ICONS.length];
+        const isFeatured = idx === 0;
+
+        return `
+          <div class="routine-card-v2${isFeatured ? ' featured' : ''}" data-rid="${r.id}" style="animation-delay:${0.1 + idx * 0.07}s">
+            <div class="routine-top">
+              <div class="routine-icon">${icon}</div>
+              <div class="routine-info">
+                <div class="routine-name-v2">${r.name}</div>
+                <div class="routine-meta-row">
+                  <span>${exCount} exercice${exCount !== 1 ? 's' : ''}</span>
+                  ${badgesHTML ? `<div class="meta-dot"></div><span style="display:flex;gap:4px;">${badgesHTML}</span>` : ''}
+                </div>
               </div>
-              <div class="flex gap-8">
-                <button class="btn btn-icon" data-edit="${r.id}" aria-label="Modifier">✏️</button>
-                <button class="btn btn-icon" data-duplicate="${r.id}" aria-label="Dupliquer">⧉</button>
-                <button class="btn btn-icon" data-delete="${r.id}" aria-label="Supprimer">🗑</button>
+              <div class="routine-actions">
+                <button class="btn btn-icon" data-edit="${r.id}" aria-label="Modifier" style="width:30px;height:30px;font-size:0.8125rem;">✏️</button>
+                <button class="btn btn-icon" data-more="${r.id}" aria-label="Plus" style="width:30px;height:30px;font-size:0.8125rem;">⋯</button>
               </div>
             </div>
+            <div class="routine-bottom">
+              <div class="routine-last-done">📅 <span>—</span></div>
+              <button class="btn-start-pill" data-start="${r.id}" style="padding:7px 14px;font-size:0.75rem;">▶ Démarrer</button>
+            </div>
           </div>`;
-        }).join('')}`;
+      }).join('');
+
+      const ctaHtml = `
+        <div class="new-routine-cta" id="btn-new-routine-cta">
+          <div class="new-routine-icon">＋</div>
+          <div style="font-size:0.875rem;font-weight:600;color:var(--cream);">Créer une routine</div>
+          <div style="font-size:0.75rem;color:var(--cream-dim);">Ajoute un nouveau programme</div>
+        </div>`;
+
+      cnt.innerHTML = headerHtml + routineCards + ctaHtml;
 
       cnt.addEventListener('click', async e => {
-        const editBtn      = e.target.closest('[data-edit]');
-        const deleteBtn    = e.target.closest('[data-delete]');
-        const duplicateBtn = e.target.closest('[data-duplicate]');
-        const card         = e.target.closest('.routine-card');
-        if (deleteBtn)    { e.stopPropagation(); confirmDelete(deleteBtn.dataset.delete); return; }
-        if (duplicateBtn) { e.stopPropagation(); duplicateRoutine(duplicateBtn.dataset.duplicate); return; }
-        if (editBtn)      { e.stopPropagation(); openEditor(editBtn.dataset.edit); return; }
-        if (card)         { openEditor(card.dataset.rid); }
+        const editBtn  = e.target.closest('[data-edit]');
+        const moreBtn  = e.target.closest('[data-more]');
+        const startBtn = e.target.closest('[data-start]');
+        const card     = e.target.closest('.routine-card-v2');
+        if (editBtn)  { e.stopPropagation(); openEditor(editBtn.dataset.edit); return; }
+        if (moreBtn)  { e.stopPropagation(); showRoutineMoreMenu(moreBtn.dataset.more); return; }
+        if (startBtn) { e.stopPropagation(); startRoutine(startBtn.dataset.start); return; }
+        if (card && !e.target.closest('button')) { openEditor(card.dataset.rid); }
       });
+
+      document.getElementById('btn-new-routine-header')?.addEventListener('click', () => openEditor(null));
+      document.getElementById('btn-new-routine-cta')?.addEventListener('click', () => openEditor(null));
 
     } catch (err) {
       console.error('[Routines] renderList:', err);
@@ -201,6 +248,33 @@ window.Routines = (() => {
     showConfirm('Supprimer cette routine ? Cette action est irréversible.', () => {
       deleteRoutine(id).then(() => renderList());
     }, { title: 'Supprimer la routine', danger: true, confirmLabel: 'Supprimer' });
+  }
+
+  function showRoutineMoreMenu(id) {
+    showConfirm('Supprimer ou dupliquer cette routine ?', () => confirmDelete(id), {
+      title: 'Options',
+      danger: true,
+      confirmLabel: '🗑 Supprimer',
+      cancelLabel: '⧉ Dupliquer',
+    });
+    // Override cancel to duplicate
+    setTimeout(() => {
+      const cancelBtn = document.querySelector('.confirm-cancel');
+      if (cancelBtn) {
+        const oldHandler = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(oldHandler, cancelBtn);
+        oldHandler.addEventListener('click', () => {
+          document.querySelector('.confirm-overlay')?.remove();
+          duplicateRoutine(id);
+        });
+      }
+    }, 50);
+  }
+
+  function startRoutine(id) {
+    // Switch to workouts tab and start the routine
+    if (window.AppState) window.AppState.switchTab('workouts');
+    setTimeout(() => { window.Workouts?.startRoutine?.(id); }, 300);
   }
 
   /* ---- Éditeur de routine ---- */
@@ -227,22 +301,30 @@ window.Routines = (() => {
 
   function renderEditor() {
     const cnt = document.getElementById('routines-content');
+    const isNew = !draft.id;
     cnt.innerHTML = `
-      <div class="editor-header flex items-center justify-between" style="margin-bottom:20px;">
-        <button class="btn btn-ghost btn-sm" id="btn-editor-cancel">‹ Retour</button>
-        <button class="btn btn-primary btn-sm" id="btn-editor-save">Enregistrer</button>
-      </div>
-      <div class="form-group" style="margin-bottom:20px;">
-        <label for="routine-name">Nom de la routine</label>
-        <input type="text" id="routine-name" class="input" placeholder="ex: Push A, Full Body…"
-               value="${draft.name}" maxlength="60">
-      </div>
-      <div class="section-header" style="margin-bottom:8px;">
-        <h3 class="section-title" style="font-size:1rem;">Exercices</h3>
-        <button class="btn btn-primary btn-sm" id="btn-add-exercise">+ Ajouter</button>
-      </div>
-      <div id="editor-exercises"></div>
-      ${!draft.exercises.length ? `<p class="text-dim" style="font-size:0.875rem;padding:16px 0;">Aucun exercice — clique sur + Ajouter</p>` : ''}`;
+      <div style="padding-top:52px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <button class="btn btn-ghost btn-sm" id="btn-editor-cancel">‹ Retour</button>
+          <h2 style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--cream);">${isNew ? 'Nouvelle routine' : 'Modifier'}</h2>
+          <button class="btn-start-pill" id="btn-editor-save">Enregistrer</button>
+        </div>
+        <div class="form-group" style="margin-bottom:20px;">
+          <label for="routine-name" style="font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:8px;display:block;">Nom de la routine</label>
+          <input type="text" id="routine-name" class="input" placeholder="ex: Push A, Full Body…"
+                 value="${draft.name}" maxlength="60" style="font-size:1rem;">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--cream-dim);">Exercices</p>
+          <button class="btn-start-pill" id="btn-add-exercise" style="padding:7px 14px;font-size:0.75rem;">+ Ajouter</button>
+        </div>
+        <div id="editor-exercises"></div>
+        ${!draft.exercises.length ? `
+          <div style="text-align:center;padding:32px 0;color:var(--cream-dim);font-size:0.875rem;">
+            <div style="font-size:2rem;margin-bottom:8px;">🏋️</div>
+            Aucun exercice — clique sur <strong style="color:var(--accent);">+ Ajouter</strong>
+          </div>` : ''}
+      </div>`;
 
     renderEditorExercises();
 

@@ -79,6 +79,7 @@ const App = window.App = (() => {
     if (window.HomeTab) HomeTab.init();
     if (window.Coach) Coach.init(); if (window.Offline) Offline.init();
     if (window.Onboarding && !Onboarding.isComplete()) Onboarding.show();
+    if (window.Workouts) Workouts.checkActiveSession();
     bindProfileBtn();
     bindPullToRefresh();
   }
@@ -408,36 +409,34 @@ const App = window.App = (() => {
      ------------------------------------------ */
   function applyTheme(theme) {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.dataset.theme = 'dark';
-    } else {
+    // Dark = default (no attribute), light = explicit data-theme="light"
+    if (theme === 'light') {
       root.dataset.theme = 'light';
+    } else {
+      delete root.dataset.theme;
     }
-    // Update meta theme-color for browser chrome
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) {
-      metaTheme.content = theme === 'dark' ? '#1a1a18' : '#F0EDE6';
+      metaTheme.content = theme === 'light' ? '#F0EDE6' : '#0e0e0c';
     }
-    // Update icon
     const icon = document.getElementById('theme-icon');
-    if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    if (icon) icon.textContent = theme === 'light' ? '🌙' : '☀️';
   }
 
   function initTheme() {
     const saved = localStorage.getItem('elev-theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = saved || (prefersDark ? 'dark' : 'light');
-    applyTheme(theme);
+    applyTheme(saved || 'dark');
   }
 
   function bindThemeToggle() {
     const btn = document.getElementById('btn-theme-toggle');
     if (!btn) return;
     btn.addEventListener('click', () => {
-      const current = document.documentElement.dataset.theme || 'light';
+      const current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
       const next = current === 'dark' ? 'light' : 'dark';
       applyTheme(next);
-      localStorage.setItem('elev-theme', next);
+      if (next === 'dark') localStorage.removeItem('elev-theme');
+      else localStorage.setItem('elev-theme', 'light');
       if (navigator.vibrate) navigator.vibrate(6);
     });
   }

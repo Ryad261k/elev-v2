@@ -9,7 +9,6 @@ window.Nutrition = (() => {
       if (g) { GOALS.kcal = g.kcal; GOALS.protein = g.protein; GOALS.carbs = g.carbs; GOALS.fat = g.fat; }
     } catch {}
   }
-  const CIRC  = 301.6; // 2π × r48
   const CATEGORIES = [
     { name: 'Petit-déjeuner', emoji: '☕', kcalGoal: 720 },
     { name: 'Déjeuner',       emoji: '🍽️', kcalGoal: 696 },
@@ -95,9 +94,10 @@ window.Nutrition = (() => {
 
   /* ── Affichage macros ──────────────────────── */
   function updateMacroDisplay(tot) {
+    const CIRC_NEW = 251; // 2π × 40 for new 100px ring
     const ring = document.getElementById('nutrition-ring');
     if (ring) ring.setAttribute('stroke-dashoffset',
-      (CIRC * (1 - Math.min(tot.kcal / GOALS.kcal, 1))).toFixed(1));
+      (CIRC_NEW * (1 - Math.min(tot.kcal / GOALS.kcal, 1))).toFixed(1));
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = Math.round(v); };
     const bar = (id, v, g) => { const el = document.getElementById(id); if (el) el.style.width = Math.min(v / g * 100, 100) + '%'; };
     set('nutrition-kcal-eaten',     tot.kcal);
@@ -109,45 +109,75 @@ window.Nutrition = (() => {
     set('goal-protein', GOALS.protein);
     set('goal-carbs',   GOALS.carbs);
     set('goal-fat',     GOALS.fat);
+    // Net goal
+    const netEl = document.getElementById('nutrition-net-goal');
+    if (netEl) netEl.textContent = GOALS.kcal;
+    // Goal display in ring
+    const goalEl = document.querySelector('[data-goal-kcal]');
+    if (goalEl) goalEl.textContent = GOALS.kcal;
   }
 
-  /* ── Catégories (Yazio style) ──────────────── */
+  /* ── Catégories maquette style ──────────────── */
   function renderMealsList(meals) {
     const list = document.getElementById('nutrition-meals-list');
     if (!list) return;
-    list.innerHTML = CATEGORIES.map((cat, ci) => {
+    list.innerHTML = CATEGORIES.map(cat => {
       const meal  = meals.find(m => m.name === cat.name);
       const items = meal?.meal_items || [];
       const eaten = Math.round(catKcal(meal));
+
       const itemsHtml = items.map(it => `
-        <div class="cat-item-row" style="padding-left:72px;">
-          <div class="cat-item-info">
-            <span class="cat-item-name">${it.food_name}${it.quantity_g ? ` · <span class="cat-item-qty">${it.quantity_g}g</span>` : ''}</span>
-            <span class="cat-item-macros">${Math.round(it.calories)} kcal · ${Math.round(it.protein)}P ${Math.round(it.carbs)}G ${Math.round(it.fat)}L</span>
+        <div class="food-row-v2">
+          <div class="food-left-v2">
+            <div class="food-name-v2">${it.food_name}</div>
+            ${it.quantity_g ? `<div class="food-qty-v2">${it.quantity_g}g</div>` : ''}
           </div>
-          <button class="cat-item-del btn" data-del="${it.id}" aria-label="Supprimer">✕</button>
-        </div>`).join('');
-      return `
-        <div class="${ci > 0 ? 'nutr-cat-border' : ''}">
-          <div class="nutr-cat-row">
-            <div class="nutr-cat-icon">${cat.emoji}</div>
-            <div class="nutr-cat-info" data-cat="${cat.name}" style="cursor:pointer;">
-              <p class="nutr-cat-name">${cat.name} <span style="color:var(--cream-dim);font-weight:400;">›</span></p>
-              <p class="nutr-cat-kcal">${eaten} / ${cat.kcalGoal} kcal</p>
+          <div class="food-right-v2">
+            <div class="food-macros-v2">
+              <div class="food-macro-v2"><span>${Math.round(it.protein)}g</span>P</div>
+              <div class="food-macro-v2"><span>${Math.round(it.carbs)}g</span>G</div>
+              <div class="food-macro-v2"><span>${Math.round(it.fat)}g</span>L</div>
             </div>
-            <button class="nutr-cat-copy" data-cat="${cat.name}" aria-label="Copier repas">📋</button>
-            <button class="nutr-cat-add" data-cat="${cat.name}" aria-label="Ajouter">+</button>
+            <div class="food-kcal-v2">${Math.round(it.calories)} kcal</div>
+            <button class="btn-del-food-v2" data-del="${it.id}" aria-label="Supprimer">×</button>
           </div>
-          ${items.length ? `<div>${itemsHtml}</div>` : ''}
+        </div>`).join('');
+
+      const emptyHtml = items.length === 0
+        ? `<div class="meal-empty-v2" data-cat="${cat.name}">＋ Ajouter un aliment ou une recette</div>`
+        : `<div class="meal-items-v2">${itemsHtml}</div>`;
+
+      return `
+        <div class="meal-card-v2">
+          <div class="meal-header-v2">
+            <div class="meal-left-v2">
+              <div class="meal-emoji-box">${cat.emoji}</div>
+              <div>
+                <div class="meal-name-v2">${cat.name}</div>
+                <div class="meal-count-v2">${items.length > 0 ? items.length + ' aliment' + (items.length > 1 ? 's' : '') : 'Aucun aliment'}</div>
+              </div>
+            </div>
+            <div class="meal-right-v2">
+              <div class="meal-total-v2" style="${eaten === 0 ? 'color:var(--cream-dim)' : ''}">${eaten > 0 ? eaten + ' kcal' : '— kcal'}</div>
+              <button class="btn-add-meal-v2" data-cat="${cat.name}" aria-label="Ajouter">＋</button>
+            </div>
+          </div>
+          ${emptyHtml}
         </div>`;
     }).join('');
 
-    list.querySelectorAll('[data-cat]').forEach(el =>
+    list.querySelectorAll('.btn-add-meal-v2').forEach(btn =>
+      btn.addEventListener('click', e => { e.stopPropagation(); openPicker(btn.dataset.cat); })
+    );
+    list.querySelectorAll('.meal-empty-v2[data-cat]').forEach(el =>
       el.addEventListener('click', e => { e.stopPropagation(); openPicker(el.dataset.cat); })
     );
-    list.querySelectorAll('.nutr-cat-copy').forEach(btn =>
-      btn.addEventListener('click', e => { e.stopPropagation(); openCopyMealModal(btn.dataset.cat); })
-    );
+    list.querySelectorAll('.meal-header-v2').forEach(hdr => {
+      const catName = hdr.querySelector('.btn-add-meal-v2')?.dataset?.cat;
+      if (catName) hdr.addEventListener('click', e => {
+        if (!e.target.closest('.btn-add-meal-v2')) openPicker(catName);
+      });
+    });
     list.querySelectorAll('[data-del]').forEach(b =>
       b.addEventListener('click', async e => {
         e.stopPropagation();
