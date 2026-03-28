@@ -178,8 +178,6 @@ const App = window.App = (() => {
     const nextBtn   = document.querySelector(`.nav-tab[data-tab="${tab}"]`);
     if (nextPanel) {
       nextPanel.classList.add('active');
-      nextPanel.classList.add(dir === 'forward' ? 'tab-enter-right' : 'tab-enter-left');
-      nextPanel.addEventListener('animationend', () => nextPanel.classList.remove('tab-enter-right', 'tab-enter-left'), { once: true });
     }
     if (nextBtn) { nextBtn.classList.add('active'); nextBtn.setAttribute('aria-selected', 'true'); }
 
