@@ -1,8 +1,3 @@
-/* ============================================
-   FOOD-PICKER.JS — Modal recherche & ajout aliments
-   Sous-module de nutrition.js — Élev v2
-   ============================================ */
-
 window.FoodPicker = (() => {
 
   let activeTab = 'frequent';
@@ -11,12 +6,12 @@ window.FoodPicker = (() => {
 
   /* ── Récents (localStorage) ────────────────── */
   function getRecentFoods() {
-    try { return JSON.parse(localStorage.getItem('nutr_recents') || '[]'); } catch(_) { return []; }
+    try { return JSON.parse(localStorage.getItem('elev-recent-foods') || '[]'); } catch(_) { return []; }
   }
   function addToRecents(food) {
     let recents = getRecentFoods().filter(r => r.name !== food.name);
     recents.unshift(food);
-    localStorage.setItem('nutr_recents', JSON.stringify(recents.slice(0, 15)));
+    localStorage.setItem('elev-recent-foods', JSON.stringify(recents.slice(0, 10)));
   }
 
   /* ── Modal shell ───────────────────────────── */
@@ -69,10 +64,17 @@ window.FoodPicker = (() => {
     setHeader(catLabel, null);
     const body = document.getElementById('food-modal-body');
     if (!body) return;
+    const recents = getRecentFoods();
+    const recentsHtml = recents.length ? `
+      <div id="food-recents-section" style="padding:8px 16px 0;">
+        <p style="font-size:0.75rem;font-weight:600;color:var(--cream-dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Récents</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="food-recents-chips"></div>
+      </div>` : '';
     body.innerHTML = `
       <div class="food-search-bar">
         <input type="search" id="food-search-input" class="input" placeholder="Rechercher un aliment…" autocomplete="off" inputmode="search" style="margin:0;">
       </div>
+      ${recentsHtml}
       <div class="food-quick-tiles">
         <button class="food-quick-tile" id="qt-custom">
           <span class="food-quick-tile-icon">✏️</span><span>Personnalisé</span>
@@ -89,6 +91,21 @@ window.FoodPicker = (() => {
         <button class="food-tab-btn" data-tab="recent">Récents</button>
       </div>
       <div id="food-results-list" class="food-results-scroll"></div>`;
+
+    // Chips récents cliquables
+    if (recents.length) {
+      const chipsEl = body.querySelector('#food-recents-chips');
+      if (chipsEl) {
+        recents.slice(0, 6).forEach(food => {
+          const chip = document.createElement('button');
+          chip.className = 'badge badge-surface';
+          chip.style.cssText = 'cursor:pointer;padding:5px 10px;font-size:0.8125rem;border:none;';
+          chip.textContent = food.name;
+          chip.addEventListener('click', () => showFoodDetail(food));
+          chipsEl.appendChild(chip);
+        });
+      }
+    }
 
     renderFoodList('');
     const inp = body.querySelector('#food-search-input');
@@ -217,6 +234,11 @@ window.FoodPicker = (() => {
         <div class="food-detail-macro-col"><p class="food-detail-macro-val">${food.protein}g</p><p class="food-detail-macro-lbl">Protéines</p></div>
         <div class="food-detail-macro-col"><p class="food-detail-macro-val">${food.fat}g</p><p class="food-detail-macro-lbl">Lipides</p></div>
       </div>
+      ${(food.fibres != null || food.sodium != null) ? `<div class="food-micro-row">
+        ${food.fibres != null ? `<span class="food-micro-chip">Fibres ${food.fibres}g</span>` : ''}
+        ${food.sodium != null ? `<span class="food-micro-chip">Sodium ${food.sodium}mg</span>` : ''}
+        ${food.sucres != null ? `<span class="food-micro-chip">Sucres ${food.sucres}g</span>` : ''}
+      </div>` : ''}
       <div class="food-detail-scroll">
         ${portionsHtml}
         <div id="food-portion-form" style="display:none;" class="food-portion-create-form">
@@ -286,7 +308,9 @@ window.FoodPicker = (() => {
       const g = gFromInputs(); if (!g) { showToast('Entre une quantité', 'error'); return; }
       addToRecents(food);
       if (onSave) await onSave({ name: food.name, qty: Math.round(g), kcal: +(food.kcal*g/100).toFixed(0),
-        protein: +(food.protein*g/100).toFixed(1), carbs: +(food.carbs*g/100).toFixed(1), fat: +(food.fat*g/100).toFixed(1) });
+        protein: +(food.protein*g/100).toFixed(1), carbs: +(food.carbs*g/100).toFixed(1), fat: +(food.fat*g/100).toFixed(1),
+        fibres: food.fibres != null ? +(food.fibres*g/100).toFixed(1) : null,
+        sodium: food.sodium != null ? Math.round(food.sodium*g/100) : null });
       close();
     });
   }
@@ -313,18 +337,24 @@ window.FoodPicker = (() => {
           <div class="form-group"><label class="macro-mini-label">Lip.</label>
             <input type="number" id="cust-fat" class="input macro-mini-input" min="0" inputmode="decimal"></div>
         </div>
+        <div class="input-row" style="gap:8px;">
+          <div class="form-group"><label class="macro-mini-label">Fibres</label>
+            <input type="number" id="cust-fibres" class="input macro-mini-input" min="0" inputmode="decimal" placeholder="g"></div>
+          <div class="form-group"><label class="macro-mini-label">Sodium</label>
+            <input type="number" id="cust-sodium" class="input macro-mini-input" min="0" inputmode="decimal" placeholder="mg"></div>
+        </div>
         <button class="btn btn-primary btn-full" id="save-custom" style="margin-top:8px;">Ajouter</button>
       </div>`;
     body.querySelector('#save-custom')?.addEventListener('click', async () => {
       const g   = id => parseFloat(document.getElementById(id)?.value) || 0;
       const name = document.getElementById('cust-name')?.value.trim();
       const qty = g('cust-qty'), k = g('cust-kcal'), p = g('cust-prot'), c = g('cust-carb'), f = g('cust-fat');
+      const fi = g('cust-fibres'), so = g('cust-sodium');
       if (!name) { showToast("Donne un nom à l'aliment", 'error'); return; }
       if (!qty)  { showToast('Entre une quantité', 'error'); return; }
-      if (onSave) await onSave({ name, qty,
-        kcal: +(k*qty/100).toFixed(0), protein: +(p*qty/100).toFixed(1),
+      if (onSave) await onSave({ name, qty, kcal: +(k*qty/100).toFixed(0), protein: +(p*qty/100).toFixed(1),
         carbs: +(c*qty/100).toFixed(1), fat: +(f*qty/100).toFixed(1),
-      });
+        fibres: fi ? +(fi*qty/100).toFixed(1) : null, sodium: so ? Math.round(so*qty/100) : null });
       close();
     });
   }
@@ -389,5 +419,4 @@ window.FoodPicker = (() => {
   }
 
   return { open, close };
-
 })();

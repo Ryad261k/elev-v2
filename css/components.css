@@ -2485,3 +2485,46 @@ select {
   transition: background 0.15s;
 }
 .nutr-cat-copy:active { background: var(--bg-surface); }
+
+/* =============================================
+   OFFLINE BANNER
+   ============================================= */
+.offline-banner {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 350;
+  background: var(--accent-warm);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px 16px;
+  safe-area-inset: env(safe-area-inset-top);
+}
+.offline-banner.visible { display: block; }
+
+/* =============================================
+   MICRONUTRIMENTS (nutrition)
+   ============================================= */
+.micro-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 0 4px; }
+.micro-chip {
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+  background: var(--bg-surface);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.micro-chip strong { color: var(--cream); font-weight: 600; }
+
+/* =============================================
+   FOOD PICKER — micro chips in detail view
+   ============================================= */
+.food-micro-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.food-micro-chip {
+  font-size: 0.75rem;
+  color: var(--cream-dim);
+  background: var(--bg-surface);
+  border-radius: 20px;
+  padding: 3px 10px;
+}

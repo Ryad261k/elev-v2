@@ -65,7 +65,7 @@ const App = window.App = (() => {
     bindNavbar();
     renderHomeDate();
     if (window.HomeTab) HomeTab.init();
-    if (window.Coach) Coach.init();
+    if (window.Coach) Coach.init(); if (window.Offline) Offline.init();
     if (window.Onboarding && !Onboarding.isComplete()) Onboarding.show();
     bindProfileBtn();
   }
@@ -85,9 +85,6 @@ const App = window.App = (() => {
     });
   }
 
-  /* ------------------------------------------
-     GREETING UTILISATEUR
-     ------------------------------------------ */
   function updateGreeting() {
     const el = document.getElementById('home-greeting');
     if (!el || !AppState.user) return;
@@ -286,19 +283,25 @@ const App = window.App = (() => {
     if (!TABS.includes(tab)) return;
     if (tab === AppState.currentTab) return;
 
+    const prevIdx = TABS.indexOf(AppState.currentTab);
+    const nextIdx = TABS.indexOf(tab);
+    const dir = nextIdx > prevIdx ? 'forward' : 'backward';
+
     const prevPanel = document.getElementById(`tab-${AppState.currentTab}`);
     const prevBtn   = document.querySelector(`.nav-tab[data-tab="${AppState.currentTab}"]`);
-    if (prevPanel) prevPanel.classList.remove('active');
+    if (prevPanel) { prevPanel.classList.remove('active'); }
     if (prevBtn)   { prevBtn.classList.remove('active'); prevBtn.setAttribute('aria-selected', 'false'); }
 
     const nextPanel = document.getElementById(`tab-${tab}`);
     const nextBtn   = document.querySelector(`.nav-tab[data-tab="${tab}"]`);
-    if (nextPanel) { nextPanel.classList.add('active'); nextPanel.classList.add('tab-enter'); }
-    if (nextBtn)   { nextBtn.classList.add('active');   nextBtn.setAttribute('aria-selected', 'true'); }
-
     if (nextPanel) {
-      nextPanel.addEventListener('animationend', () => nextPanel.classList.remove('tab-enter'), { once: true });
+      nextPanel.classList.add('active');
+      nextPanel.classList.add(dir === 'forward' ? 'tab-enter-right' : 'tab-enter-left');
+      nextPanel.addEventListener('animationend', () => {
+        nextPanel.classList.remove('tab-enter-right', 'tab-enter-left');
+      }, { once: true });
     }
+    if (nextBtn) { nextBtn.classList.add('active'); nextBtn.setAttribute('aria-selected', 'true'); }
 
     AppState.currentTab = tab;
     document.dispatchEvent(new CustomEvent('tabchange', { detail: { tab } }));

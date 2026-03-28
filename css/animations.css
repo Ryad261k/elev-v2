@@ -192,6 +192,38 @@
   }
 }
 
+/* Transitions directionnelles */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+@keyframes slideOutLeft {
+  from { transform: translateX(0);     opacity: 1; }
+  to   { transform: translateX(-100%); opacity: 0; }
+}
+@keyframes slideOutRight {
+  from { transform: translateX(0);    opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+.tab-enter-right { animation: slideInRight 220ms ease-out forwards; }
+.tab-enter-left  { animation: slideInLeft  220ms ease-out forwards; }
+.tab-exit-left   { animation: slideOutLeft  180ms ease-in  forwards; pointer-events: none; }
+.tab-exit-right  { animation: slideOutRight 180ms ease-in  forwards; pointer-events: none; }
+
+@keyframes slideUp {
+  from { transform: translate(-50%, 30px); opacity: 0; }
+  to   { transform: translate(-50%, 0);    opacity: 1; }
+}
+@keyframes slideDown {
+  from { transform: translate(-50%, 0);    opacity: 1; }
+  to   { transform: translate(-50%, 30px); opacity: 0; }
+}
+
 /* ==========================================
    RING PROGRESS (nutrition)
    ========================================== */

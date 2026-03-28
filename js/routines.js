@@ -81,6 +81,26 @@ window.Routines = (() => {
     }
   }
 
+  async function duplicateRoutine(id) {
+    try {
+      const { data: orig } = await DB.from('routines').select('name').eq('id', id).single();
+      const { data: newR } = await DB.from('routines')
+        .insert({ user_id: DB.userId(), name: orig.name + ' (copie)' })
+        .select().single();
+      const exs = await fetchRoutineDetail(id);
+      if (exs.length) {
+        await DB.from('routine_exercises').insert(
+          exs.map((e, i) => ({
+            routine_id: newR.id, exercise_id: e.exercise.id,
+            order_index: i, sets: e.sets, reps: e.reps, weight: e.weight,
+          }))
+        );
+      }
+      showToast('Routine dupliquée ✓', 'success');
+      renderList();
+    } catch { showToast('Erreur lors de la duplication', 'error'); }
+  }
+
   /* ---- Vue liste ---- */
   async function renderList() {
     const cnt = document.getElementById('routines-content');
@@ -119,18 +139,21 @@ window.Routines = (() => {
               </div>
               <div class="flex gap-8">
                 <button class="btn btn-icon" data-edit="${r.id}" aria-label="Modifier">✏️</button>
+                <button class="btn btn-icon" data-duplicate="${r.id}" aria-label="Dupliquer">⧉</button>
                 <button class="btn btn-icon" data-delete="${r.id}" aria-label="Supprimer">🗑</button>
               </div>
             </div>
           </div>`).join('')}`;
 
       cnt.addEventListener('click', async e => {
-        const editBtn   = e.target.closest('[data-edit]');
-        const deleteBtn = e.target.closest('[data-delete]');
-        const card      = e.target.closest('.routine-card');
-        if (deleteBtn) { e.stopPropagation(); confirmDelete(deleteBtn.dataset.delete); return; }
-        if (editBtn)   { e.stopPropagation(); openEditor(editBtn.dataset.edit); return; }
-        if (card)      { openEditor(card.dataset.rid); }
+        const editBtn      = e.target.closest('[data-edit]');
+        const deleteBtn    = e.target.closest('[data-delete]');
+        const duplicateBtn = e.target.closest('[data-duplicate]');
+        const card         = e.target.closest('.routine-card');
+        if (deleteBtn)    { e.stopPropagation(); confirmDelete(deleteBtn.dataset.delete); return; }
+        if (duplicateBtn) { e.stopPropagation(); duplicateRoutine(duplicateBtn.dataset.duplicate); return; }
+        if (editBtn)      { e.stopPropagation(); openEditor(editBtn.dataset.edit); return; }
+        if (card)         { openEditor(card.dataset.rid); }
       });
 
     } catch (err) {

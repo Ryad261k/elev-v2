@@ -189,13 +189,6 @@ window.Coach = (() => {
   }
 
   /* ------------------------------------------
-     INIT
-     ------------------------------------------ */
-  function init() {
-    createFAB();
-  }
-
-  /* ------------------------------------------
      APPEL RAPIDE (sans ouvrir le chat)
      ------------------------------------------ */
   async function quickAsk(message) {
@@ -211,6 +204,126 @@ window.Coach = (() => {
       const { content } = await resp.json();
       return content || null;
     } catch (_) { return null; }
+  }
+
+  /* ------------------------------------------
+     NOTIFICATIONS PROACTIVES
+     ------------------------------------------ */
+  async function checkProactiveNotifications() {
+    try {
+      const uid = DB.userId();
+      const today = new Date().toISOString().slice(0, 10);
+      const lastKey = `elev-coach-notif-${uid}-${today}`;
+      if (localStorage.getItem(lastKey)) return; // déjà envoyée aujourd'hui
+
+      const context = await buildContext();
+      const { recentSessions, todayKcal, goals, profile } = context;
+
+      const tips = [];
+
+      // Pas de séance depuis > 3 jours
+      if (recentSessions?.length) {
+        const lastDate = recentSessions[0]?.date;
+        if (lastDate) {
+          const daysSince = Math.floor((Date.now() - new Date(lastDate)) / 86400000);
+          if (daysSince >= 3) tips.push(`💪 Tu n'as pas fait de séance depuis ${daysSince} jours. Petite relance ?`);
+        }
+      }
+
+      // Calories trop basses (< 60% objectif)
+      if (goals?.kcal && todayKcal > 0 && todayKcal < goals.kcal * 0.6) {
+        tips.push(`🥗 Tu es à ${todayKcal} kcal aujourd'hui — moins de 60% de ton objectif. Pense à manger !`);
+      }
+
+      // Protéines insuffisantes
+      if (goals?.protein) {
+        const { data: meals } = await DB.from('meals')
+          .select('meal_items(protein)').eq('user_id', uid).eq('date', today);
+        const prot = (meals || []).reduce((s, m) =>
+          s + (m.meal_items || []).reduce((s2, i) => s2 + (i.protein || 0), 0), 0);
+        if (prot > 0 && prot < goals.protein * 0.7) {
+          tips.push(`🥩 Protéines du jour : ${Math.round(prot)}g / ${goals.protein}g. Rajoute une source de protéines !`);
+        }
+      }
+
+      if (!tips.length) return;
+      localStorage.setItem(lastKey, '1');
+
+      // Affiche après 3s (laisser l'app se charger)
+      setTimeout(() => {
+        tips.forEach((tip, i) => {
+          setTimeout(() => showNotifBubble(tip), i * 4000);
+        });
+      }, 3000);
+    } catch (_) {}
+  }
+
+  function showNotifBubble(msg) {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+      max-width:320px;width:calc(100% - 40px);
+      background:var(--bg-card);border:1px solid var(--border);
+      border-radius:14px;padding:14px 16px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.15);
+      z-index:250;display:flex;align-items:flex-start;gap:10px;
+      animation:slideUp 300ms ease-out forwards;
+    `;
+    el.innerHTML = `
+      <span style="font-size:1.25rem;flex-shrink:0;">✨</span>
+      <p style="font-size:0.875rem;color:var(--cream);line-height:1.4;flex:1;">${msg}</p>
+      <button style="background:none;border:none;color:var(--cream-dim);cursor:pointer;padding:0;font-size:1rem;flex-shrink:0;" aria-label="Fermer">✕</button>
+    `;
+    el.querySelector('button').addEventListener('click', () => el.remove());
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.animation = 'slideDown 300ms ease-in forwards'; el.addEventListener('animationend', () => el.remove(), { once: true }); }, 6000);
+  }
+
+  /* ------------------------------------------
+     RAPPORT HEBDOMADAIRE (dimanche)
+     ------------------------------------------ */
+  async function checkWeeklyReport() {
+    try {
+      const uid = DB.userId();
+      const now = new Date();
+      if (now.getDay() !== 0) return; // uniquement le dimanche
+      const weekKey = `elev-weekly-report-${uid}-${now.toISOString().slice(0, 10)}`;
+      if (localStorage.getItem(weekKey)) return;
+
+      const context = await buildContext();
+      const prompt = `Tu es le coach IA de l'app ÉLEV. Génère un bilan hebdomadaire court (4–6 lignes) en français. Données : ${JSON.stringify(context)}. Format :
+📊 Bilan de la semaine
+• [point fort]
+• [point fort]
+⚡ À améliorer
+• [axe d'amélioration]
+💡 [conseil pratique pour la semaine suivante]`;
+
+      const resp = await fetch(EDGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.SUPABASE_ANON}` },
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], context: JSON.stringify(context) }),
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!resp.ok) return;
+      const { content } = await resp.json();
+      if (!content) return;
+
+      localStorage.setItem(weekKey, '1');
+      // Stocke le rapport pour le chat
+      S.messages.unshift({ role: 'assistant', content: `📋 **Rapport de la semaine**\n\n${content}` });
+
+      // Notif visuelle
+      setTimeout(() => showNotifBubble('📋 Ton bilan de la semaine est prêt — ouvre le Coach IA pour le voir !'), 5000);
+    } catch (_) {}
+  }
+
+  function init() {
+    createFAB();
+    // Notifications proactives après 5s (app chargée)
+    setTimeout(checkProactiveNotifications, 5000);
+    // Rapport hebdo après 8s
+    setTimeout(checkWeeklyReport, 8000);
   }
 
   return { init, open, close, quickAsk };

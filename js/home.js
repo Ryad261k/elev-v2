@@ -123,6 +123,74 @@ window.HomeTab = (() => {
     return { kcal: 2400, protein: 180, carbs: 240, fat: 80 };
   }
 
+  /* ── Poids sur l'accueil ─────────────────── */
+  function renderWeightWidget() {
+    const uid = window.AppState?.user?.id || 'local';
+    const logs = (() => { try { return JSON.parse(localStorage.getItem(`elev-weight-logs-${uid}`) || '[]'); } catch { return []; } })();
+    const section = document.getElementById('home-weight-section');
+    if (!section) return;
+    if (!logs.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    const last = logs[logs.length - 1];
+    const prev = logs.length > 1 ? logs[logs.length - 2] : null;
+    const monthStart = logs.find(l => l.date.slice(0, 7) === new Date().toISOString().slice(0, 7));
+
+    const valEl = document.getElementById('home-weight-value');
+    const dayEl = document.getElementById('home-weight-delta-day');
+    const monEl = document.getElementById('home-weight-delta-month');
+
+    if (valEl) valEl.textContent = last.value.toFixed(1) + ' kg';
+    if (dayEl && prev) {
+      const d = (last.value - prev.value).toFixed(1);
+      dayEl.textContent = d > 0 ? `↑ ${d} kg vs hier` : d < 0 ? `↓ ${Math.abs(d)} kg vs hier` : '= stable vs hier';
+      dayEl.style.color = d > 0 ? 'var(--color-danger)' : d < 0 ? 'var(--accent)' : 'var(--cream-dim)';
+    }
+    if (monEl && monthStart && monthStart !== last) {
+      const dm = (last.value - monthStart.value).toFixed(1);
+      monEl.textContent = dm > 0 ? `↑ ${dm} kg ce mois` : dm < 0 ? `↓ ${Math.abs(dm)} kg ce mois` : '= stable ce mois';
+      monEl.style.color = dm > 0 ? 'var(--color-danger)' : dm < 0 ? 'var(--accent)' : 'var(--cream-dim)';
+    }
+  }
+
+  /* ── Prochaine séance ────────────────────── */
+  async function fetchNextRoutine() {
+    try {
+      const { data } = await DB.from('routines')
+        .select('id, name, routine_exercises(exercise:exercises(muscle_group))')
+        .eq('user_id', DB.userId())
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (!data?.length) return null;
+      const today = todayStr();
+      const { data: todaySess } = await DB.from('sessions')
+        .select('routine_id')
+        .eq('user_id', DB.userId())
+        .gte('started_at', today + 'T00:00:00')
+        .lte('started_at', today + 'T23:59:59');
+      const doneIds = new Set((todaySess || []).map(s => s.routine_id));
+      return data.find(r => !doneIds.has(r.id)) || data[0];
+    } catch { return null; }
+  }
+
+  function renderNextSession(routine) {
+    const section = document.getElementById('home-next-session-section');
+    const card = document.getElementById('home-next-session-card');
+    if (!section || !card) return;
+    if (!routine) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    const muscles = [...new Set((routine.routine_exercises || [])
+      .map(e => e.exercise?.muscle_group).filter(Boolean))];
+    const exCount = routine.routine_exercises?.length || 0;
+    card.innerHTML = `
+      <div style="margin-bottom:10px;">
+        <p style="font-size:1.125rem;font-weight:600;color:var(--cream);">${routine.name}</p>
+        <p class="card-subtitle">${exCount} exercice${exCount > 1 ? 's' : ''}</p>
+      </div>
+      ${muscles.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${muscles.slice(0, 5).map(m => `<span class="badge badge-surface" style="font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.05em;">${m}</span>`).join('')}
+      </div>` : ''}`;
+  }
+
   /* ── Rendu séance ────────────────────────── */
   function renderSession(session) {
     const card = document.getElementById('home-workout-card');
@@ -170,12 +238,14 @@ window.HomeTab = (() => {
   /* ── Refresh complet ─────────────────────── */
   async function refresh() {
     if (!DB.userId()) return;
-    const [tot, session, stats] = await Promise.all([
-      fetchTodayNutrition(), fetchTodaySession(), fetchActivityStats()
+    const [tot, session, stats, routine] = await Promise.all([
+      fetchTodayNutrition(), fetchTodaySession(), fetchActivityStats(), fetchNextRoutine()
     ]);
     renderNutrition(tot);
     renderSession(session);
     renderActivity(stats);
+    renderWeightWidget();
+    renderNextSession(routine);
   }
 
   function init() {

@@ -172,6 +172,20 @@
           <p class="page-header-sub" id="home-subtitle" style="transition:opacity 0.3s ease;">Prêt pour aujourd'hui ?</p>
         </header>
 
+        <!-- Widget Poids -->
+        <section aria-label="Poids" id="home-weight-section" style="margin-bottom:16px;display:none;">
+          <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
+            <div>
+              <p class="card-subtitle" style="margin-bottom:2px;">POIDS</p>
+              <p style="font-size:2rem;font-weight:700;color:var(--cream);line-height:1;" id="home-weight-value">—</p>
+            </div>
+            <div style="text-align:right;">
+              <p id="home-weight-delta-day" class="card-subtitle"></p>
+              <p id="home-weight-delta-month" class="card-subtitle"></p>
+            </div>
+          </div>
+        </section>
+
         <!-- Résumé séance du jour -->
         <section aria-label="Séance du jour">
           <div class="section-header">
@@ -187,6 +201,19 @@
               <p class="empty-state-text">Lance une routine pour commencer</p>
             </div>
           </div>
+        </section>
+
+        <!-- Prochaine séance -->
+        <section aria-label="Prochaine séance" class="mt-16" id="home-next-session-section" style="display:none;">
+          <div class="section-header">
+            <h2 class="section-title">Prochaine séance</h2>
+          </div>
+          <div class="card card-accent-left" id="home-next-session-card" style="cursor:pointer;" onclick="AppState && AppState.switchTab('workouts')">
+            <!-- Peuplé par home.js -->
+          </div>
+          <button class="btn btn-primary btn-full" style="margin-top:10px;" onclick="AppState && AppState.switchTab('workouts')">
+            DÉMARRER UNE SÉANCE →
+          </button>
         </section>
 
         <!-- Résumé nutrition du jour -->
@@ -385,6 +412,9 @@
           </div>
         </div>
 
+        <!-- Micronutriments estimés — peuplé par nutrition.js -->
+        <div id="nutrition-micros"></div>
+
         <!-- Alimentation (catégories) -->
         <div style="margin-top: 20px;">
           <div class="section-header">
@@ -441,6 +471,12 @@
           <!-- Peuplé par js/stats.js -->
         </div>
 
+        <!-- Corrélation poids / calories — peuplé par stats.js -->
+        <div id="correlation-chart"></div>
+
+        <!-- Heatmap activité — peuplé par stats.js -->
+        <div id="stats-heatmap"></div>
+
       </div>
     </section>
 
@@ -487,6 +523,11 @@
 
     </nav>
 
+    <!-- Bannière hors-ligne — peuplée par offline.js -->
+    <div id="offline-banner" class="offline-banner" aria-live="polite">
+      <span class="offline-label">Hors-ligne</span>
+    </div>
+
   </div><!-- /#app -->
 
   <!-- ================================================
@@ -495,6 +536,8 @@
   <!-- Supabase SDK (UMD) — expose window.supabase.createClient -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/offline.js"></script>
   <script src="js/app.js"></script>
   <script src="js/home.js"></script>
   <script src="js/rest-timer.js"></script>

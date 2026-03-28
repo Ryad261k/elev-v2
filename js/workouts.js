@@ -174,6 +174,14 @@ window.Workouts = (() => {
         <div id="note-${ex.id}" style="display:none;margin-bottom:10px;">
           <textarea class="input" rows="2" placeholder="Note…" data-note-for="${ex.id}" style="font-size:0.875rem;"></textarea>
         </div>
+        <div class="set-row" style="opacity:0.55;font-size:0.6875rem;padding:4px 12px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;background:transparent;">
+          <span class="set-num">#</span>
+          <span style="width:66px;text-align:center;">Reps</span>
+          <span class="set-sep">×</span>
+          <span style="width:66px;text-align:center;">Poids</span>
+          <span class="set-sep"></span>
+          <span style="width:50px;text-align:center;">RPE</span>
+        </div>
         <div id="sets-${ex.id}" class="sets-list"></div>
         <button class="btn btn-secondary btn-sm btn-full" style="margin-top:8px;"
           data-add-set="${ex.id}" data-reps="${re.reps}" data-weight="${re.weight}">+ Set</button>
@@ -194,6 +202,7 @@ window.Workouts = (() => {
         <span class="set-sep">×</span>
         <input type="number" class="input set-input" value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
         <span class="set-sep">kg</span>
+        <input type="number" class="input set-input set-rpe" min="1" max="10" inputmode="numeric" placeholder="—" aria-label="RPE" style="width:50px;flex-shrink:0;">
         <button class="check-circle" style="border:none;cursor:pointer;flex-shrink:0;" aria-label="Valider">✓</button>
       </div>`;
     list.appendChild(el);
@@ -202,12 +211,14 @@ window.Workouts = (() => {
       list.querySelectorAll('.set-num').forEach((s, i) => { s.textContent = i + 1; });
     });
     el.querySelector('.check-circle').addEventListener('click', ev => {
-      const [rIn, wIn] = el.querySelectorAll('.set-input');
+      const inputs = el.querySelectorAll('.set-input');
+      const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
       const reps = parseInt(rIn.value) || 0, weight = parseFloat(wIn.value) || 0;
+      const rpe  = rpeIn ? (parseInt(rpeIn.value) || null) : null;
       const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
       const found = arr.find(s => s.n === n);
-      if (found) { found.reps = reps; found.weight = weight; }
-      else arr.push({ n, reps, weight });
+      if (found) { found.reps = reps; found.weight = weight; found.rpe = rpe; }
+      else arr.push({ n, reps, weight, rpe });
 
       const prevBest = S.prBest[exId];
       const isPR = prevBest !== undefined && weight > prevBest;
@@ -246,7 +257,11 @@ window.Workouts = (() => {
         notes: Object.entries(S.notes).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join('\n') || null
       }).eq('id', S.session.id);
       const rows = Object.entries(S.loggedSets).flatMap(([exId, sets]) =>
-        sets.map(s => ({ session_id: S.session.id, exercise_id: exId, set_number: s.n, reps: s.reps, weight: s.weight, is_warmup: false, created_at: new Date().toISOString() }))
+        sets.map(s => {
+          const row = { session_id: S.session.id, exercise_id: exId, set_number: s.n, reps: s.reps, weight: s.weight, is_warmup: false, created_at: new Date().toISOString() };
+          if (s.rpe != null) row.rpe = s.rpe;
+          return row;
+        })
       );
       if (rows.length) { const { error } = await DB.from('session_sets').insert(rows); if (error) throw error; }
       showSummary(endedAt);

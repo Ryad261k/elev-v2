@@ -52,13 +52,27 @@ window.Nutrition = (() => {
     return data.id;
   }
   async function addItemToMeal(mealId, item) {
-    const { error } = await DB.from('meal_items').insert({
-      meal_id: mealId, food_name: item.name,
-      quantity_g: item.qty || null,
-      calories: item.kcal, protein: item.protein,
-      carbs: item.carbs,   fat: item.fat,
-    });
+    const payload = { meal_id: mealId, food_name: item.name, quantity_g: item.qty||null,
+      calories: item.kcal, protein: item.protein, carbs: item.carbs, fat: item.fat };
+    if (window.Offline) return Offline.tryInsert('meal_items', payload);
+    const { error } = await DB.from('meal_items').insert(payload);
     if (error) throw error;
+  }
+
+  /* ── Micronutriments estimés ──────────────────── */
+  function renderMicros(meals) {
+    const el = document.getElementById('nutrition-micros');
+    if (!el) return;
+    let f = 0, s = 0;
+    meals.forEach(m => (m.meal_items||[]).forEach(it => {
+      const fd = FoodDB.search(it.food_name).find(x => x.name === it.food_name);
+      if (!fd) return;
+      const r = (it.quantity_g||100)/100;
+      f += (fd.fibres||0)*r; s += (fd.sodium||0)*r;
+    }));
+    el.innerHTML = f || s
+      ? `<div class="micro-row"><span class="micro-chip">Fibres <strong>${Math.round(f)}g</strong></span><span class="micro-chip">Sodium <strong>${Math.round(s)}mg</strong></span></div>`
+      : '';
   }
   async function deleteItemFromDB(id) {
     const { error } = await DB.from('meal_items').delete().eq('id', id);
@@ -206,12 +220,8 @@ window.Nutrition = (() => {
       try {
         const mealId = await getOrCreateMeal(activeCat, S.date);
         await addItemToMeal(mealId, item);
-        showToast('Aliment ajouté ✓', 'success');
-        await renderDay();
-      } catch (err) {
-        console.error('[Nutrition] saveFood:', err);
-        showToast('Erreur lors de la sauvegarde', 'error');
-      }
+        showToast('Aliment ajouté ✓', 'success'); await renderDay();
+      } catch (err) { console.error('[Nutrition] saveFood:', err); showToast('Erreur lors de la sauvegarde', 'error'); }
     });
   }
 
@@ -219,16 +229,12 @@ window.Nutrition = (() => {
   async function renderDay() {
     const dateEl  = document.getElementById('nutrition-date');
     const nextBtn = document.getElementById('nutrition-next-day');
-    if (dateEl)  dateEl.textContent = formatDateLabel(S.date);
-    if (nextBtn) nextBtn.disabled   = S.date >= todayStr();
+    if (dateEl) dateEl.textContent = formatDateLabel(S.date);
+    if (nextBtn) nextBtn.disabled = S.date >= todayStr();
     try {
       const meals = await fetchDayMeals(S.date);
-      updateMacroDisplay(calcTotals(meals));
-      renderMealsList(meals);
-    } catch (err) {
-      console.error('[Nutrition] renderDay:', err);
-      showToast('Erreur de chargement', 'error');
-    }
+      updateMacroDisplay(calcTotals(meals)); renderMealsList(meals); renderMicros(meals);
+    } catch (err) { console.error('[Nutrition] renderDay:', err); showToast('Erreur de chargement', 'error'); }
   }
 
   /* ── Hydratation (localStorage) ────────────── */
@@ -386,15 +392,9 @@ window.Nutrition = (() => {
   }
 
   async function init() {
-    loadSavedGoals();
-    S.date = todayStr();
-    bindStaticElements();
-    await renderDay();
-    renderWater();
-    renderWeeklyTrends();
+    loadSavedGoals(); S.date = todayStr();
+    bindStaticElements(); await renderDay(); renderWater(); renderWeeklyTrends();
   }
-
   document.addEventListener('tabchange', e => { if (e.detail.tab === 'nutrition') init(); });
   return { init };
-
 })();
