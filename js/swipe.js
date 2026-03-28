@@ -50,7 +50,6 @@
       routines:  () => window.Routines?.init?.(),
     };
     refreshMap[tab]?.();
-    showToast('Actualisé', 'info', 1800);
   }
 
   /* ── Touch handlers ──────────────────────── */
