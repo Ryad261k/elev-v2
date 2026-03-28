@@ -19,7 +19,8 @@
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_f251ce2d9596992e7b3efca5e9825c98e1a4bfd4 npx supabase functions deploy chat --project-ref axqhwraacpdfdpalgzlb 2>&1)",
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_f251ce2d9596992e7b3efca5e9825c98e1a4bfd4 npx supabase secrets list --project-ref axqhwraacpdfdpalgzlb 2>&1)",
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_f251ce2d9596992e7b3efca5e9825c98e1a4bfd4 npx supabase secrets set GEMINI_API_KEY=AIzaSyBi8dhM0B-f5yHSQPXqrDmQZGBO_h1dHVY --project-ref axqhwraacpdfdpalgzlb 2>&1)",
-      "Bash(SUPABASE_ACCESS_TOKEN=sbp_f251ce2d9596992e7b3efca5e9825c98e1a4bfd4 npx supabase functions deploy chat --project-ref axqhwraacpdfdpalgzlb)"
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_f251ce2d9596992e7b3efca5e9825c98e1a4bfd4 npx supabase functions deploy chat --project-ref axqhwraacpdfdpalgzlb)",
+      "Bash(grep:*)"
     ]
   }
 }

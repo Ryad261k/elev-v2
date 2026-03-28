@@ -466,8 +466,11 @@
           <!-- Peuplé par js/history.js -->
         </div>
 
+        <!-- Streak & régularité — peuplé par stats.js -->
+        <div id="stats-streak" style="margin-top:16px;"></div>
+
         <!-- Section stats avancées (progression 1RM, volume par muscle) -->
-        <div id="stats-content" style="margin-top:16px;">
+        <div id="stats-content">
           <!-- Peuplé par js/stats.js -->
         </div>
 
@@ -526,6 +529,12 @@
     <!-- Bannière hors-ligne — peuplée par offline.js -->
     <div id="offline-banner" class="offline-banner" aria-live="polite">
       <span class="offline-label">Hors-ligne</span>
+    </div>
+
+    <!-- Pull-to-refresh indicator -->
+    <div id="ptr-indicator" class="ptr-indicator" aria-hidden="true">
+      <div class="ptr-spinner"></div>
+      <span>Actualisation…</span>
     </div>
 
   </div><!-- /#app -->

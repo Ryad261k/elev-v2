@@ -68,6 +68,7 @@ const App = window.App = (() => {
     if (window.Coach) Coach.init(); if (window.Offline) Offline.init();
     if (window.Onboarding && !Onboarding.isComplete()) Onboarding.show();
     bindProfileBtn();
+    bindPullToRefresh();
   }
 
   function onSignedOut() {
@@ -315,6 +316,43 @@ const App = window.App = (() => {
     document.querySelectorAll('.nav-tab').forEach(btn => {
       btn.addEventListener('click', () => { if (btn.dataset.tab) navigateTo(btn.dataset.tab); });
     });
+  }
+
+  /* ------------------------------------------
+     PULL TO REFRESH
+     ------------------------------------------ */
+  function bindPullToRefresh() {
+    let startY = 0, startTop = 0, active = false;
+    const THRESHOLD = 70;
+
+    function indicator() { return document.getElementById('ptr-indicator'); }
+    function activePanel() { return document.querySelector('.tab-content.active'); }
+
+    document.addEventListener('touchstart', e => {
+      const panel = activePanel();
+      if (!panel) return;
+      startTop = panel.scrollTop;
+      startY   = e.touches[0].clientY;
+      active   = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+      if (!active || startTop > 4) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 12) indicator()?.classList.add('visible');
+    }, { passive: true });
+
+    document.addEventListener('touchend', e => {
+      if (!active) return;
+      active = false;
+      const ind = indicator();
+      if (!ind || !ind.classList.contains('visible')) return;
+      ind.classList.remove('visible');
+      const dy = e.changedTouches[0].clientY - startY;
+      if (dy >= THRESHOLD) {
+        document.dispatchEvent(new CustomEvent('tabchange', { detail: { tab: AppState.currentTab } }));
+      }
+    }, { passive: true });
   }
 
   /* ------------------------------------------

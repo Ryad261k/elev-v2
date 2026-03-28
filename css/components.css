@@ -2443,27 +2443,6 @@ select {
 }
 .weight-filter-btn:active { transform: scale(0.96); }
 
-/* =============================================
-   PULL-TO-REFRESH
-   ============================================= */
-#ptr-indicator {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  display: flex;
-  justify-content: center;
-  padding: 12px;
-  z-index: 50;
-  opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  pointer-events: none;
-}
-.ptr-spinner {
-  width: 28px; height: 28px;
-  border: 2.5px solid var(--border);
-  border-top-color: var(--accent-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
 
 /* =============================================
    NUTRITION — Copier repas
@@ -2516,6 +2495,75 @@ select {
   padding: 3px 10px;
 }
 .micro-chip strong { color: var(--cream); font-weight: 600; }
+
+/* =============================================
+   CONFIRM BOTTOM SHEET
+   ============================================= */
+.confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 400;
+  display: flex;
+  align-items: flex-end;
+}
+.confirm-sheet {
+  background: var(--bg-card);
+  border-radius: 20px 20px 0 0;
+  padding: 14px 20px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  width: 100%; max-width: 500px; margin: 0 auto;
+  animation: sheetSlideUp 280ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes sheetSlideDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+.confirm-handle {
+  width: 36px; height: 4px;
+  background: var(--border); border-radius: 2px;
+  margin: 0 auto 18px;
+}
+.confirm-title {
+  font-size: 1rem; font-weight: 600;
+  color: var(--cream); margin-bottom: 6px;
+}
+.confirm-msg {
+  font-size: 0.875rem; color: var(--cream-dim);
+  line-height: 1.5; margin-bottom: 20px;
+}
+.confirm-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* =============================================
+   PULL TO REFRESH
+   ============================================= */
+.ptr-indicator {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 0;
+  overflow: hidden;
+  background: var(--bg-card);
+  color: var(--cream-dim);
+  font-size: 0.8125rem;
+  z-index: 95;
+  transition: height 200ms ease;
+  border-bottom: 1px solid var(--border);
+}
+.ptr-indicator.visible { height: 44px; }
+.ptr-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
 
 /* =============================================
    FOOD PICKER — micro chips in detail view

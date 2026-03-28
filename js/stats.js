@@ -293,7 +293,74 @@ window.Stats = (() => {
     renderFullHeatmap(dates);
   }
 
-  async function render() { await _render(); await renderCorrelation(); await renderHeatmap(); }
+  /* ── Streak record + régularité ──────────────── */
+  function calcMaxStreak(dates) {
+    const unique = [...new Set(dates)].sort();
+    if (!unique.length) return 0;
+    let max = 1, cur = 1;
+    for (let i = 1; i < unique.length; i++) {
+      const diff = Math.round((new Date(unique[i]) - new Date(unique[i - 1])) / 86400000);
+      if (diff === 1) { cur++; if (cur > max) max = cur; }
+      else cur = 1;
+    }
+    return max;
+  }
+
+  function calcCurrentStreak(dates) {
+    const unique = [...new Set(dates)].sort().reverse();
+    const today  = new Date().toISOString().slice(0, 10);
+    const yest   = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (!unique.length || (unique[0] !== today && unique[0] !== yest)) return 0;
+    let streak = 1;
+    for (let i = 1; i < unique.length; i++) {
+      const diff = Math.round((new Date(unique[i - 1]) - new Date(unique[i])) / 86400000);
+      if (diff === 1) streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  async function renderStreak() {
+    const cnt = document.getElementById('stats-streak');
+    if (!cnt) return;
+    try {
+      const dates = await fetchAllSessionDates();
+      if (!dates.length) { cnt.innerHTML = ''; return; }
+      const currentStreak = calcCurrentStreak(dates);
+      const maxStreak     = calcMaxStreak(dates);
+      const total         = [...new Set(dates)].length; // jours uniques
+      const monday        = new Date();
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const weekStr       = monday.toISOString().slice(0, 10);
+      const thisWeek      = dates.filter(d => d >= weekStr).length;
+
+      cnt.innerHTML = `<div class="card" style="margin-bottom:16px;">
+        <div class="section-header" style="margin-bottom:12px;">
+          <h2 class="section-title">Régularité</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center;">
+          <div>
+            <p style="font-size:1.75rem;font-weight:700;color:var(--accent);line-height:1;">${currentStreak}</p>
+            <p class="card-subtitle" style="margin-top:3px;font-size:0.6875rem;">Streak</p>
+          </div>
+          <div>
+            <p style="font-size:1.75rem;font-weight:700;color:var(--color-gold);line-height:1;">${maxStreak}</p>
+            <p class="card-subtitle" style="margin-top:3px;font-size:0.6875rem;">Record</p>
+          </div>
+          <div>
+            <p style="font-size:1.75rem;font-weight:700;color:var(--cream);line-height:1;">${total}</p>
+            <p class="card-subtitle" style="margin-top:3px;font-size:0.6875rem;">Total</p>
+          </div>
+          <div>
+            <p style="font-size:1.75rem;font-weight:700;color:var(--cream);line-height:1;">${thisWeek}</p>
+            <p class="card-subtitle" style="margin-top:3px;font-size:0.6875rem;">Cette sem.</p>
+          </div>
+        </div>
+      </div>`;
+    } catch (_) { cnt.innerHTML = ''; }
+  }
+
+  async function render() { await _render(); await renderStreak(); await renderCorrelation(); await renderHeatmap(); }
 
   function init() { render(); }
 

@@ -143,10 +143,11 @@ window.Recipes = (() => {
         btn.addEventListener('click', () => openRecipeEditor(btn.dataset.edit))
       );
       body.querySelectorAll('[data-del]').forEach(btn =>
-        btn.addEventListener('click', async () => {
-          if (!confirm('Supprimer cette recette ?')) return;
-          try { await deleteRecipe(btn.dataset.del); showToast('Recette supprimée', 'info'); renderRecipesList(); }
-          catch (_) { showToast('Erreur lors de la suppression', 'error'); }
+        btn.addEventListener('click', () => {
+          showConfirm('Supprimer cette recette ?', async () => {
+            try { await deleteRecipe(btn.dataset.del); showToast('Recette supprimée', 'info'); renderRecipesList(); }
+            catch (_) { showToast('Erreur lors de la suppression', 'error'); }
+          }, { title: 'Supprimer la recette', danger: true, confirmLabel: 'Supprimer' });
         })
       );
     } catch (err) {

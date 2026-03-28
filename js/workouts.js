@@ -243,7 +243,11 @@ window.Workouts = (() => {
   // Confirmation + sauvegarde
   function confirmFinish() {
     const total = Object.values(S.loggedSets).reduce((s, a) => s + a.length, 0);
-    if (total === 0 && !confirm('Aucun set enregistré. Terminer quand même ?')) return;
+    if (total === 0) {
+      showConfirm('Aucun set enregistré. Terminer quand même ?', finishSession,
+        { title: 'Terminer la séance', danger: false, confirmLabel: 'Terminer quand même' });
+      return;
+    }
     finishSession();
   }
 

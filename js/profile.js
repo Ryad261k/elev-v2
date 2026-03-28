@@ -126,10 +126,11 @@ window.Profile = (() => {
     body.querySelector('#btn-export-csv').addEventListener('click', downloadCSV);
     body.querySelector('#btn-export-json').addEventListener('click', downloadJSON);
     body.querySelector('#btn-reset-onboarding').addEventListener('click', () => {
-      if (!confirm('Réinitialiser ton profil et recommencer l\'onboarding ?')) return;
-      localStorage.removeItem(`elev-onboarding-done-${uid}`);
-      modal.classList.remove('open');
-      setTimeout(() => { if (window.Onboarding) Onboarding.show(); }, 300);
+      showConfirm('Réinitialiser ton profil et recommencer l\'onboarding ?', () => {
+        localStorage.removeItem(`elev-onboarding-done-${uid}`);
+        modal.classList.remove('open');
+        setTimeout(() => { if (window.Onboarding) Onboarding.show(); }, 300);
+      }, { title: 'Réinitialiser le profil', danger: true, confirmLabel: 'Réinitialiser' });
     });
 
     // Load stats async

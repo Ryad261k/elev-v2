@@ -163,8 +163,9 @@ window.Routines = (() => {
   }
 
   function confirmDelete(id) {
-    if (!confirm('Supprimer cette routine ? Cette action est irréversible.')) return;
-    deleteRoutine(id).then(() => renderList());
+    showConfirm('Supprimer cette routine ? Cette action est irréversible.', () => {
+      deleteRoutine(id).then(() => renderList());
+    }, { title: 'Supprimer la routine', danger: true, confirmLabel: 'Supprimer' });
   }
 
   /* ---- Éditeur de routine ---- */
