@@ -17,7 +17,7 @@ window.AppState = {
    ========================================== */
 const App = window.App = (() => {
 
-  const TABS = ['home', 'workouts', 'routines', 'nutrition', 'weight', 'history'];
+  const TABS = ['routines', 'weight', 'home', 'nutrition', 'history', 'workouts'];
 
   /* ------------------------------------------
      ÉCRANS — loader / auth / app
@@ -27,6 +27,38 @@ const App = window.App = (() => {
     document.getElementById('loader-screen').style.display = screen === 'loader' ? 'flex' : 'none';
     document.getElementById('auth-screen').style.display   = screen === 'auth'   ? 'flex' : 'none';
     document.getElementById('app').style.display           = screen === 'app'    ? 'flex' : 'none';
+  }
+
+  function restoreUserMetadataCache(user) {
+    const meta = user?.user_metadata;
+    const uid = user?.id;
+    if (!meta || !uid) return;
+
+    if (meta.elev_profile) localStorage.setItem(`elev-profile-${uid}`, JSON.stringify(meta.elev_profile));
+    if (meta.elev_goals) localStorage.setItem(`elev-nutrition-goals-${uid}`, JSON.stringify(meta.elev_goals));
+    if (meta.elev_avatar) localStorage.setItem(`elev-avatar-${uid}`, meta.elev_avatar);
+    if (meta.elev_onboarding_done) localStorage.setItem(`elev-onboarding-done-${uid}`, '1');
+
+    if (meta.elev_weight_logs) localStorage.setItem(`elev-weight-logs-${uid}`, JSON.stringify(meta.elev_weight_logs));
+    if (meta.elev_measurements) localStorage.setItem(`elev-measurements-${uid}`, JSON.stringify(meta.elev_measurements));
+    if (meta.elev_weight_profile) localStorage.setItem(`elev-weight-profile-${uid}`, JSON.stringify(meta.elev_weight_profile));
+    if (meta.elev_water_logs) {
+      Object.entries(meta.elev_water_logs).forEach(([date, value]) => {
+        localStorage.setItem(`elev-water-${uid}-${date}`, String(value || 0));
+      });
+    }
+    if (meta.elev_recent_foods) localStorage.setItem('elev-recent-foods', JSON.stringify(meta.elev_recent_foods));
+    if (meta.elev_food_favorites) localStorage.setItem(`elev-food-favorites-${uid}`, JSON.stringify(meta.elev_food_favorites));
+    if (meta.elev_routine_methods) {
+      Object.entries(meta.elev_routine_methods).forEach(([routineId, methods]) => {
+        localStorage.setItem(`elev-ex-methods-${routineId}`, JSON.stringify(methods || {}));
+      });
+    }
+    if (meta.elev_routine_meta) {
+      Object.entries(meta.elev_routine_meta).forEach(([routineId, routineMeta]) => {
+        localStorage.setItem(`elev-routine-meta-${routineId}`, JSON.stringify(routineMeta || {}));
+      });
+    }
   }
 
   /* ------------------------------------------
@@ -60,17 +92,8 @@ const App = window.App = (() => {
   function onAuthenticated(session) {
     AppState.session = session;
     AppState.user    = session.user;
-
-    // Restauration depuis user_metadata si localStorage vide
-    const meta = session.user?.user_metadata;
-    if (meta?.elev_onboarding_done) {
-      const uid = session.user.id;
-      if (!localStorage.getItem(`elev-onboarding-done-${uid}`)) {
-        if (meta.elev_profile) localStorage.setItem(`elev-profile-${uid}`, JSON.stringify(meta.elev_profile));
-        if (meta.elev_goals)   localStorage.setItem(`elev-nutrition-goals-${uid}`, JSON.stringify(meta.elev_goals));
-        localStorage.setItem(`elev-onboarding-done-${uid}`, '1');
-      }
-    }
+    document.body.dataset.activeTab = AppState.currentTab;
+    restoreUserMetadataCache(session.user);
 
     updateGreeting();
     showScreen('app');
@@ -116,6 +139,26 @@ const App = window.App = (() => {
       name = firstName.charAt(0).toUpperCase() + firstName.slice(1);
     }
     el.textContent = `Bonjour, ${name}`;
+  }
+
+  function getAvatarDataUrl() {
+    const uid = AppState.user?.id;
+    if (!uid) return null;
+    try { return localStorage.getItem(`elev-avatar-${uid}`); }
+    catch { return null; }
+  }
+
+  function updateProfileButtonAvatar() {
+    const btn = document.getElementById('btn-open-profile');
+    if (!btn) return;
+    const avatar = getAvatarDataUrl();
+    if (avatar) {
+      btn.innerHTML = `<img src="${avatar}" alt="Profil" class="home-header-avatar">`;
+      btn.classList.add('has-avatar');
+    } else {
+      btn.textContent = '👤';
+      btn.classList.remove('has-avatar');
+    }
   }
 
   /* ------------------------------------------
@@ -278,6 +321,7 @@ const App = window.App = (() => {
     const btn = document.getElementById('btn-open-profile');
     if (!btn) return;
     btn.replaceWith(btn.cloneNode(true));
+    updateProfileButtonAvatar();
     document.getElementById('btn-open-profile')?.addEventListener('click', () => { if (window.Profile) Profile.open(); });
   }
 
@@ -326,6 +370,7 @@ const App = window.App = (() => {
     if (nextBtn) { nextBtn.classList.add('active'); nextBtn.setAttribute('aria-selected', 'true'); }
 
     AppState.currentTab = tab;
+    document.body.dataset.activeTab = tab;
     document.dispatchEvent(new CustomEvent('tabchange', { detail: { tab } }));
   }
 
@@ -409,34 +454,34 @@ const App = window.App = (() => {
      ------------------------------------------ */
   function applyTheme(theme) {
     const root = document.documentElement;
-    // Dark = default (no attribute), light = explicit data-theme="light"
-    if (theme === 'light') {
-      root.dataset.theme = 'light';
+    // Light = default (no attribute), dark = explicit data-theme="dark"
+    if (theme === 'dark') {
+      root.dataset.theme = 'dark';
     } else {
       delete root.dataset.theme;
     }
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) {
-      metaTheme.content = theme === 'light' ? '#F0EDE6' : '#0e0e0c';
+      metaTheme.content = theme === 'dark' ? '#0e0e0c' : '#F0EDE6';
     }
     const icon = document.getElementById('theme-icon');
-    if (icon) icon.textContent = theme === 'light' ? '🌙' : '☀️';
+    if (icon) icon.textContent = theme === 'dark' ? '☀' : '☾';
   }
 
   function initTheme() {
     const saved = localStorage.getItem('elev-theme');
-    applyTheme(saved || 'dark');
+    applyTheme(saved || 'light');
   }
 
   function bindThemeToggle() {
     const btn = document.getElementById('btn-theme-toggle');
     if (!btn) return;
     btn.addEventListener('click', () => {
-      const current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+      const current = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
       const next = current === 'dark' ? 'light' : 'dark';
       applyTheme(next);
-      if (next === 'dark') localStorage.removeItem('elev-theme');
-      else localStorage.setItem('elev-theme', 'light');
+      if (next === 'light') localStorage.removeItem('elev-theme');
+      else localStorage.setItem('elev-theme', 'dark');
       if (navigator.vibrate) navigator.vibrate(6);
     });
   }
@@ -446,10 +491,13 @@ const App = window.App = (() => {
      ------------------------------------------ */
   function init() {
     window.showToast = showToast;
+    window.updateProfileButtonAvatar = updateProfileButtonAvatar;
+    document.body.dataset.activeTab = AppState.currentTab;
     initTheme();
     bindAuthForm();
     bindSignOut();
     bindThemeToggle();
+    document.addEventListener('profileavatarchange', updateProfileButtonAvatar);
     initAuth();
   }
 

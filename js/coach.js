@@ -8,38 +8,142 @@ window.Coach = (() => {
   const S = { messages: [], loading: false, open: false };
   const EDGE_URL = `${window.SUPABASE_URL}/functions/v1/chat`;
 
+  function readJSON(key, fallback = null) {
+    try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
+    catch { return fallback; }
+  }
+
+  function sumMealMacros(meals) {
+    return (meals || []).reduce((tot, meal) => {
+      (meal.meal_items || []).forEach(item => {
+        tot.kcal += item.calories || 0;
+        tot.protein += item.protein || 0;
+        tot.carbs += item.carbs || 0;
+        tot.fat += item.fat || 0;
+      });
+      return tot;
+    }, { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  }
+
+  function getRoutineMeta(routineId) {
+    return readJSON(`elev-routine-meta-${routineId}`, {});
+  }
+
+  async function fetchRecentSessions(limit = 30) {
+    const { data } = await DB.from('sessions')
+      .select('id, started_at, ended_at, routine_id, routine:routines(name), session_sets(reps,weight,is_warmup,exercise:exercises(name,muscle_group))')
+      .eq('user_id', DB.userId()).not('ended_at', 'is', null)
+      .order('started_at', { ascending: false }).limit(limit);
+    return (data || []).map(session => {
+      const workSets = (session.session_sets || []).filter(set => !set.is_warmup);
+      const volume = workSets.reduce((sum, set) => sum + ((set.reps || 0) * (set.weight || 0)), 0);
+      const topSet = workSets.reduce((best, set) => {
+        const score = (set.weight || 0) * 1000 + (set.reps || 0);
+        return !best || score > best.score
+          ? { score, weight: set.weight || 0, reps: set.reps || 0, exercise: set.exercise?.name || 'Exercice' }
+          : best;
+      }, null);
+      return {
+        date: session.started_at?.slice(0, 10),
+        routine: session.routine?.name || 'Autre',
+        routineId: session.routine_id || null,
+        duration: session.ended_at ? Math.round((new Date(session.ended_at) - new Date(session.started_at)) / 60000) : null,
+        sets: workSets.length,
+        volume,
+        topSet: topSet ? `${topSet.exercise} ${topSet.weight}kg x ${topSet.reps}` : null,
+        muscles: [...new Set(workSets.map(set => set.exercise?.muscle_group).filter(Boolean))]
+      };
+    });
+  }
+
+  async function fetchNutritionWindow(daysBack = 14) {
+    const end = new Date();
+    const start = new Date(Date.now() - (daysBack - 1) * 86400000);
+    const startStr = start.toISOString().slice(0, 10);
+    const { data } = await DB.from('meals')
+      .select('date, meal_items(calories,protein,carbs,fat)')
+      .eq('user_id', DB.userId()).gte('date', startStr)
+      .order('date', { ascending: false });
+    const grouped = {};
+    (data || []).forEach(meal => {
+      if (!grouped[meal.date]) grouped[meal.date] = [];
+      grouped[meal.date].push(meal);
+    });
+    const days = [];
+    for (let i = 0; i < daysBack; i++) {
+      const date = new Date(end);
+      date.setDate(end.getDate() - i);
+      const key = date.toISOString().slice(0, 10);
+      days.push({ date: key, ...sumMealMacros(grouped[key] || []) });
+    }
+    return days.reverse();
+  }
+
+  async function fetchProgramSnapshot() {
+    const { data } = await DB.from('routines')
+      .select('id, name, routine_exercises(id)')
+      .eq('user_id', DB.userId())
+      .order('created_at', { ascending: false })
+      .limit(8);
+    return (data || []).map(routine => {
+      const meta = getRoutineMeta(routine.id);
+      return {
+        id: routine.id,
+        name: routine.name,
+        exerciseCount: routine.routine_exercises?.length || 0,
+        objective: meta.objective || null,
+        daysPerWeek: meta.daysPerWeek || null,
+        notes: meta.notes || ''
+      };
+    });
+  }
+
+  function buildHeuristics(recentSessions, nutritionWindow, goals) {
+    const hints = [];
+    if (recentSessions.length >= 3) {
+      const lastThree = recentSessions.slice(0, 3);
+      const durations = lastThree.map(s => s.duration || 0);
+      const avgDuration = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+      hints.push(`Durée moyenne récente: ${avgDuration} min`);
+    }
+    if (goals?.protein) {
+      const lowProteinDays = nutritionWindow.filter(day => day.protein > 0 && day.protein < goals.protein * 0.8).length;
+      if (lowProteinDays >= 3) hints.push(`Protéines sous l'objectif sur ${lowProteinDays} jour(s) récemment`);
+    }
+    const routineCounts = recentSessions.reduce((acc, session) => {
+      acc[session.routine] = (acc[session.routine] || 0) + 1;
+      return acc;
+    }, {});
+    const topRoutine = Object.entries(routineCounts).sort((a, b) => b[1] - a[1])[0];
+    if (topRoutine) hints.push(`Routine la plus fréquente: ${topRoutine[0]} (${topRoutine[1]} séance(s))`);
+    return hints;
+  }
+
   /* ------------------------------------------
      CONTEXTE UTILISATEUR
      ------------------------------------------ */
   async function buildContext() {
     try {
-      const { data: sessions } = await DB.from('sessions')
-        .select('started_at, ended_at, routine:routines(name), session_sets(reps,weight,is_warmup,exercise:exercises(name))')
-        .eq('user_id', DB.userId()).not('ended_at', 'is', null)
-        .order('started_at', { ascending: false }).limit(5);
-
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: meals } = await DB.from('meals')
-        .select('meal_items(calories,protein,carbs,fat)')
-        .eq('user_id', DB.userId()).eq('date', today);
-
-      const totalKcal = (meals || []).reduce((s, m) =>
-        s + (m.meal_items || []).reduce((s2, i) => s2 + (i.calories || 0), 0), 0);
-
       const uid = DB.userId();
-      const goals = JSON.parse(localStorage.getItem(`elev-nutrition-goals-${uid}`) || 'null');
-      const profile = JSON.parse(localStorage.getItem(`elev-profile-${uid}`) || 'null');
+      const goals = readJSON(`elev-nutrition-goals-${uid}`, null);
+      const profile = readJSON(`elev-profile-${uid}`, null);
+      const recentSessions = await fetchRecentSessions(30);
+      const nutritionWindow = await fetchNutritionWindow(14);
+      const programSnapshot = await fetchProgramSnapshot();
+      const weightLogs = readJSON(`elev-weight-logs-${uid}`, []);
+      const latestWeight = weightLogs?.length ? weightLogs[weightLogs.length - 1] : null;
+      const heuristics = buildHeuristics(recentSessions, nutritionWindow, goals);
+      const todayNutrition = nutritionWindow[nutritionWindow.length - 1] || { kcal: 0, protein: 0, carbs: 0, fat: 0 };
 
       return {
         profile,
         goals,
-        todayKcal: Math.round(totalKcal),
-        recentSessions: (sessions || []).slice(0, 3).map(s => ({
-          date: s.started_at?.slice(0, 10),
-          routine: s.routine?.name || 'Autre',
-          duration: s.ended_at ? Math.round((new Date(s.ended_at) - new Date(s.started_at)) / 60000) : null,
-          sets: (s.session_sets || []).filter(x => !x.is_warmup).length
-        }))
+        latestWeight,
+        todayNutrition,
+        nutrition14d: nutritionWindow,
+        recentSessions,
+        activePrograms: programSnapshot,
+        heuristics
       };
     } catch { return {}; }
   }
@@ -217,7 +321,7 @@ window.Coach = (() => {
       if (localStorage.getItem(lastKey)) return; // déjà envoyée aujourd'hui
 
       const context = await buildContext();
-      const { recentSessions, todayKcal, goals, profile } = context;
+      const { recentSessions, todayNutrition, goals, heuristics } = context;
 
       const tips = [];
 
@@ -231,19 +335,20 @@ window.Coach = (() => {
       }
 
       // Calories trop basses (< 60% objectif)
-      if (goals?.kcal && todayKcal > 0 && todayKcal < goals.kcal * 0.6) {
-        tips.push(`🥗 Tu es à ${todayKcal} kcal aujourd'hui — moins de 60% de ton objectif. Pense à manger !`);
+      if (goals?.kcal && todayNutrition?.kcal > 0 && todayNutrition.kcal < goals.kcal * 0.6) {
+        tips.push(`🥗 Tu es à ${todayNutrition.kcal} kcal aujourd'hui — moins de 60% de ton objectif. Pense à manger !`);
       }
 
       // Protéines insuffisantes
       if (goals?.protein) {
-        const { data: meals } = await DB.from('meals')
-          .select('meal_items(protein)').eq('user_id', uid).eq('date', today);
-        const prot = (meals || []).reduce((s, m) =>
-          s + (m.meal_items || []).reduce((s2, i) => s2 + (i.protein || 0), 0), 0);
+        const prot = todayNutrition?.protein || 0;
         if (prot > 0 && prot < goals.protein * 0.7) {
           tips.push(`🥩 Protéines du jour : ${Math.round(prot)}g / ${goals.protein}g. Rajoute une source de protéines !`);
         }
+      }
+
+      if (heuristics?.length) {
+        heuristics.slice(0, 2).forEach(hint => tips.push(`📌 ${hint}`));
       }
 
       if (!tips.length) return;

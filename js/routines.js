@@ -6,11 +6,31 @@
 window.Routines = (() => {
 
   // Brouillon d'édition en mémoire
-  let draft = null;       // { id|null, name, exercises: [{exercise_id,name,muscle_group,sets,reps,weight}] }
+  let draft = null;       // { id|null, name, meta, methods, exercises: [{exercise_id,name,muscle_group,sets,reps,weight}] }
   let allExercises = [];  // cache bibliothèque
 
   /* ---- Méthodes avancées (localStorage) ---- */
   function getMethodsKey(routineId) { return `elev-ex-methods-${routineId}`; }
+  function getMetaKey(routineId)    { return `elev-routine-meta-${routineId}`; }
+
+  function syncRoutineCloudState() {
+    const methodsByRoutine = {};
+    const metaByRoutine = {};
+    try {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('elev-ex-methods-')) {
+          methodsByRoutine[key.replace('elev-ex-methods-', '')] = JSON.parse(localStorage.getItem(key) || '{}');
+        }
+        if (key.startsWith('elev-routine-meta-')) {
+          metaByRoutine[key.replace('elev-routine-meta-', '')] = JSON.parse(localStorage.getItem(key) || '{}');
+        }
+      });
+    } catch {}
+    window.CloudState?.schedule({
+      elev_routine_methods: methodsByRoutine,
+      elev_routine_meta: metaByRoutine
+    });
+  }
 
   function loadMethods(routineId) {
     if (!routineId) return {};
@@ -18,15 +38,82 @@ window.Routines = (() => {
     catch { return {}; }
   }
 
-  function saveMethod(routineId, exerciseId, method) {
+  function saveMethods(routineId, methods) {
     if (!routineId) return;
-    const methods = loadMethods(routineId);
-    if (method === 'normal') { delete methods[exerciseId]; }
-    else { methods[exerciseId] = method; }
-    localStorage.setItem(getMethodsKey(routineId), JSON.stringify(methods));
+    localStorage.setItem(getMethodsKey(routineId), JSON.stringify(methods || {}));
+    syncRoutineCloudState();
   }
 
-  const METHOD_LABELS = { normal: 'Normal', amrap: 'AMRAP', dropset: 'Drop Set', superset: 'Superset' };
+  function loadMeta(routineId) {
+    const base = { objective: 'hypertrophie', daysPerWeek: 4, notes: '' };
+    if (!routineId) return { ...base };
+    try { return { ...base, ...(JSON.parse(localStorage.getItem(getMetaKey(routineId)) || '{}') || {}) }; }
+    catch { return { ...base }; }
+  }
+
+  function saveMeta(routineId, meta) {
+    if (!routineId) return;
+    localStorage.setItem(getMetaKey(routineId), JSON.stringify(meta || {}));
+    syncRoutineCloudState();
+  }
+
+  const METHOD_LABELS = {
+    normal: 'Normal',
+    amrap: 'AMRAP',
+    dropset: 'Drop Set',
+    superset: 'Superset',
+    restpause: 'Rest-Pause',
+    tempo: 'Tempo',
+    htfr: 'HTFR',
+    giantset: 'Giant Set'
+  };
+
+  const PROGRAM_TEMPLATES = [
+    {
+      id: 'push-pull-legs',
+      label: 'PPL',
+      name: 'Push / Pull / Legs',
+      objective: 'hypertrophie',
+      daysPerWeek: 6,
+      notes: 'Split classique avec rotation push, pull et legs.',
+      exercises: [
+        { keyword: 'développé couché', muscle_group: 'Pectoraux', sets: 4, reps: 8, weight: 0 },
+        { keyword: 'développé militaire', muscle_group: 'Épaules', sets: 3, reps: 8, weight: 0 },
+        { keyword: 'rowing', muscle_group: 'Dos', sets: 4, reps: 10, weight: 0 },
+        { keyword: 'traction', muscle_group: 'Dos', sets: 4, reps: 8, weight: 0, method: 'amrap' },
+        { keyword: 'squat', muscle_group: 'Quadriceps', sets: 4, reps: 6, weight: 0, method: 'htfr' },
+        { keyword: 'soulevé de terre roumain', muscle_group: 'Jambes', sets: 3, reps: 8, weight: 0 }
+      ]
+    },
+    {
+      id: 'upper-lower',
+      label: 'U/L',
+      name: 'Upper / Lower',
+      objective: 'force',
+      daysPerWeek: 4,
+      notes: 'Structure 4 jours orientée progression sur les mouvements de base.',
+      exercises: [
+        { keyword: 'développé couché', muscle_group: 'Pectoraux', sets: 5, reps: 5, weight: 0, method: 'htfr' },
+        { keyword: 'rowing', muscle_group: 'Dos', sets: 4, reps: 6, weight: 0 },
+        { keyword: 'squat', muscle_group: 'Quadriceps', sets: 5, reps: 5, weight: 0, method: 'htfr' },
+        { keyword: 'leg curl', muscle_group: 'Jambes', sets: 3, reps: 10, weight: 0, method: 'tempo' }
+      ]
+    },
+    {
+      id: 'full-body',
+      label: 'FB',
+      name: 'Full Body',
+      objective: 'maintien',
+      daysPerWeek: 3,
+      notes: 'Base polyvalente 3 jours avec accent sur les mouvements composés.',
+      exercises: [
+        { keyword: 'squat', muscle_group: 'Quadriceps', sets: 3, reps: 8, weight: 0 },
+        { keyword: 'développé couché', muscle_group: 'Pectoraux', sets: 3, reps: 8, weight: 0 },
+        { keyword: 'tirage horizontal', muscle_group: 'Dos', sets: 3, reps: 10, weight: 0 },
+        { keyword: 'fentes', muscle_group: 'Jambes', sets: 2, reps: 12, weight: 0, method: 'tempo' }
+      ]
+    }
+  ];
 
   /* ---- Requêtes DB ---- */
   async function fetchRoutines() {
@@ -57,7 +144,7 @@ window.Routines = (() => {
 
   async function saveRoutine() {
     const name = draft.name.trim();
-    if (!name) { showToast('Donne un nom à la routine', 'error'); return false; }
+    if (!name) { showToast('Donne un nom à la séance', 'error'); return false; }
 
     try {
       let routineId = draft.id;
@@ -80,7 +167,9 @@ window.Routines = (() => {
         const { error } = await DB.from('routine_exercises').insert(rows);
         if (error) throw error;
       }
-      showToast(draft.id ? 'Routine mise à jour' : 'Routine créée', 'success');
+      saveMethods(routineId, draft.methods);
+      saveMeta(routineId, draft.meta);
+      showToast(draft.id ? 'Séance mise à jour' : 'Séance créée', 'success');
       return true;
     } catch (err) {
       console.error('[Routines] saveRoutine:', err);
@@ -94,7 +183,9 @@ window.Routines = (() => {
       await DB.from('routine_exercises').delete().eq('routine_id', id);
       await DB.from('routines').delete().eq('id', id);
       localStorage.removeItem(getMethodsKey(id));
-      showToast('Routine supprimée', 'info');
+      localStorage.removeItem(getMetaKey(id));
+      syncRoutineCloudState();
+      showToast('Séance supprimée', 'info');
     } catch (err) {
       console.error('[Routines] deleteRoutine:', err);
       showToast('Erreur lors de la suppression', 'error');
@@ -119,11 +210,57 @@ window.Routines = (() => {
       // Copier les méthodes avancées depuis localStorage
       const srcMethods = loadMethods(id);
       if (Object.keys(srcMethods).length) {
-        localStorage.setItem(getMethodsKey(newR.id), JSON.stringify(srcMethods));
+        saveMethods(newR.id, srcMethods);
       }
-      showToast('Routine dupliquée ✓', 'success');
+      saveMeta(newR.id, loadMeta(id));
+      showToast('Séance dupliquée ✓', 'success');
       renderList();
     } catch { showToast('Erreur lors de la duplication', 'error'); }
+  }
+
+  async function resolveTemplateExercise(spec, usedIds) {
+    await fetchExerciseLibrary();
+    const keyword = (spec.keyword || '').toLowerCase();
+    let found = allExercises.find(ex => {
+      const name = (ex.name || '').toLowerCase();
+      return keyword && name.includes(keyword) && !usedIds.has(ex.id);
+    });
+    if (!found && spec.muscle_group) {
+      found = allExercises.find(ex => ex.muscle_group === spec.muscle_group && !usedIds.has(ex.id));
+    }
+    if (!found) return null;
+    usedIds.add(found.id);
+    return {
+      exercise_id: found.id,
+      name: found.name,
+      muscle_group: found.muscle_group || '',
+      sets: spec.sets,
+      reps: spec.reps,
+      weight: spec.weight
+    };
+  }
+
+  async function createFromTemplate(templateId) {
+    const tpl = PROGRAM_TEMPLATES.find(t => t.id === templateId);
+    if (!tpl) return;
+    const usedIds = new Set();
+    const exercises = [];
+    const methods = {};
+    for (const spec of tpl.exercises) {
+      const resolved = await resolveTemplateExercise(spec, usedIds);
+      if (!resolved) continue;
+      exercises.push(resolved);
+      if (spec.method && spec.method !== 'normal') methods[resolved.exercise_id] = spec.method;
+    }
+    draft = {
+      id: null,
+      name: tpl.name,
+      meta: { objective: tpl.objective, daysPerWeek: tpl.daysPerWeek, notes: tpl.notes },
+      methods,
+      exercises
+    };
+    if (!exercises.length) showToast('Template prêt, ajoute maintenant les exercices de ta bibliothèque.', 'info');
+    renderEditor();
   }
 
   /* ---- Vue liste ---- */
@@ -141,14 +278,14 @@ window.Routines = (() => {
           <div style="display:flex;align-items:flex-end;justify-content:space-between;padding-top:52px;margin-bottom:20px;">
             <div>
               <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Mes programmes</p>
-              <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Routines</h1>
+              <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Séances</h1>
             </div>
             <button class="btn-start-pill" id="btn-new-routine-empty">＋ Nouvelle</button>
           </div>
           <div class="empty-state" style="margin-top:48px;">
             <span class="empty-state-icon">📋</span>
-            <p class="empty-state-title">Aucune routine</p>
-            <p class="empty-state-text">Crée ta première routine d'entraînement</p>
+            <p class="empty-state-title">Aucune séance</p>
+            <p class="empty-state-text">Crée ta première séance d'entraînement</p>
           </div>`;
         document.getElementById('btn-new-routine-empty')?.addEventListener('click', () => openEditor(null));
         return;
@@ -159,14 +296,22 @@ window.Routines = (() => {
         'Pectoraux': 'primary', 'Épaules': 'primary', 'Dos': 'primary', 'Biceps': 'primary',
         'Jambes': 'primary', 'Quadriceps': 'primary', 'Fessiers': 'primary',
       };
-      const METHOD_BADGE_LABELS = { amrap: '🔁 AMRAP', dropset: '📉 DROP SET', superset: '⚡ SUPERSET' };
+      const METHOD_BADGE_LABELS = {
+        amrap: '🔁 AMRAP',
+        dropset: '📉 DROP SET',
+        superset: '⚡ SUPERSET',
+        restpause: '⏱ REST-PAUSE',
+        tempo: '🎵 TEMPO',
+        htfr: '🏋 HTFR',
+        giantset: '🔥 GIANT SET'
+      };
 
       // Header with new + button + day chips
       const headerHtml = `
         <div style="display:flex;align-items:flex-end;justify-content:space-between;padding-top:52px;margin-bottom:20px;">
           <div>
             <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Mes programmes</p>
-            <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Routines</h1>
+            <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Séances</h1>
           </div>
           <button class="btn-start-pill" id="btn-new-routine-header">＋ Nouvelle</button>
         </div>
@@ -183,6 +328,7 @@ window.Routines = (() => {
 
       const routineCards = routines.map((r, idx) => {
         const methods = loadMethods(r.id);
+        const meta = loadMeta(r.id);
         const activeMethods = Object.values(methods).filter(m => m !== 'normal');
         const uniqueMethods = [...new Set(activeMethods)];
         const badgesHTML = uniqueMethods.map(m =>
@@ -200,6 +346,8 @@ window.Routines = (() => {
                 <div class="routine-name-v2">${r.name}</div>
                 <div class="routine-meta-row">
                   <span>${exCount} exercice${exCount !== 1 ? 's' : ''}</span>
+                  <div class="meta-dot"></div><span>${meta.daysPerWeek} j/sem</span>
+                  <div class="meta-dot"></div><span>${meta.objective}</span>
                   ${badgesHTML ? `<div class="meta-dot"></div><span style="display:flex;gap:4px;">${badgesHTML}</span>` : ''}
                 </div>
               </div>
@@ -218,7 +366,7 @@ window.Routines = (() => {
       const ctaHtml = `
         <div class="new-routine-cta" id="btn-new-routine-cta">
           <div class="new-routine-icon">＋</div>
-          <div style="font-size:0.875rem;font-weight:600;color:var(--cream);">Créer une routine</div>
+          <div style="font-size:0.875rem;font-weight:600;color:var(--cream);">Créer une séance</div>
           <div style="font-size:0.75rem;color:var(--cream-dim);">Ajoute un nouveau programme</div>
         </div>`;
 
@@ -237,7 +385,6 @@ window.Routines = (() => {
 
       document.getElementById('btn-new-routine-header')?.addEventListener('click', () => openEditor(null));
       document.getElementById('btn-new-routine-cta')?.addEventListener('click', () => openEditor(null));
-
     } catch (err) {
       console.error('[Routines] renderList:', err);
       cnt.innerHTML = '<p class="text-dim" style="padding:24px;">Erreur de chargement</p>';
@@ -245,13 +392,13 @@ window.Routines = (() => {
   }
 
   function confirmDelete(id) {
-    showConfirm('Supprimer cette routine ? Cette action est irréversible.', () => {
+    showConfirm('Supprimer cette séance ? Cette action est irréversible.', () => {
       deleteRoutine(id).then(() => renderList());
-    }, { title: 'Supprimer la routine', danger: true, confirmLabel: 'Supprimer' });
+    }, { title: 'Supprimer la séance', danger: true, confirmLabel: 'Supprimer' });
   }
 
   function showRoutineMoreMenu(id) {
-    showConfirm('Supprimer ou dupliquer cette routine ?', () => confirmDelete(id), {
+    showConfirm('Supprimer ou dupliquer cette séance ?', () => confirmDelete(id), {
       title: 'Options',
       danger: true,
       confirmLabel: '🗑 Supprimer',
@@ -287,6 +434,8 @@ window.Routines = (() => {
       const { data } = await DB.from('routines').select('name').eq('id', routineId).single();
       draft = {
         id: routineId, name: data?.name || '',
+        meta: loadMeta(routineId),
+        methods: loadMethods(routineId),
         exercises: rows.map(r => ({
           exercise_id: r.exercise.id, name: r.exercise.name,
           muscle_group: r.exercise.muscle_group || '',
@@ -294,7 +443,7 @@ window.Routines = (() => {
         })),
       };
     } else {
-      draft = { id: null, name: '', exercises: [] };
+      draft = { id: null, name: '', meta: loadMeta(null), methods: {}, exercises: [] };
     }
     renderEditor();
   }
@@ -306,13 +455,34 @@ window.Routines = (() => {
       <div style="padding-top:52px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
           <button class="btn btn-ghost btn-sm" id="btn-editor-cancel">‹ Retour</button>
-          <h2 style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--cream);">${isNew ? 'Nouvelle routine' : 'Modifier'}</h2>
+          <h2 style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--cream);">${isNew ? 'Nouvelle séance' : 'Modifier'}</h2>
           <button class="btn-start-pill" id="btn-editor-save">Enregistrer</button>
         </div>
         <div class="form-group" style="margin-bottom:20px;">
-          <label for="routine-name" style="font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:8px;display:block;">Nom de la routine</label>
+          <label for="routine-name" style="font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:8px;display:block;">Nom de la séance</label>
           <input type="text" id="routine-name" class="input" placeholder="ex: Push A, Full Body…"
                  value="${draft.name}" maxlength="60" style="font-size:1rem;">
+        </div>
+        <div class="input-row" style="margin-bottom:20px;">
+          <div class="form-group">
+            <label for="routine-objective" style="font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:8px;display:block;">Objectif</label>
+            <select id="routine-objective" class="input">
+              <option value="hypertrophie"${draft.meta.objective === 'hypertrophie' ? ' selected' : ''}>Hypertrophie</option>
+              <option value="force"${draft.meta.objective === 'force' ? ' selected' : ''}>Force</option>
+              <option value="endurance"${draft.meta.objective === 'endurance' ? ' selected' : ''}>Endurance</option>
+              <option value="maintien"${draft.meta.objective === 'maintien' ? ' selected' : ''}>Maintien</option>
+              <option value="seche"${draft.meta.objective === 'seche' ? ' selected' : ''}>Sèche</option>
+            </select>
+          </div>
+          ${isNew ? '' : `
+          <div class="form-group">
+            <label for="routine-days" style="font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:8px;display:block;">Jours / semaine</label>
+            <input type="number" id="routine-days" class="input" min="1" max="7" inputmode="numeric" value="${draft.meta.daysPerWeek || 4}">
+          </div>`}
+        </div>
+        <div class="form-group" style="margin-bottom:20px;">
+          <label for="routine-notes" style="font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--cream-dim);margin-bottom:8px;display:block;">Note séance</label>
+          <textarea id="routine-notes" class="input" rows="3" placeholder="Contraintes, rythme, focus..." style="padding-top:12px;padding-bottom:12px;">${draft.meta.notes || ''}</textarea>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
           <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--cream-dim);">Exercices</p>
@@ -329,6 +499,9 @@ window.Routines = (() => {
     renderEditorExercises();
 
     document.getElementById('routine-name')?.addEventListener('input', e => { draft.name = e.target.value; });
+    document.getElementById('routine-objective')?.addEventListener('input', e => { draft.meta.objective = e.target.value; });
+    document.getElementById('routine-days')?.addEventListener('input', e => { draft.meta.daysPerWeek = parseInt(e.target.value, 10) || 4; });
+    document.getElementById('routine-notes')?.addEventListener('input', e => { draft.meta.notes = e.target.value; });
     document.getElementById('btn-editor-cancel')?.addEventListener('click', () => { draft = null; renderList(); });
     document.getElementById('btn-editor-save')?.addEventListener('click', async () => {
       const ok = await saveRoutine();
@@ -342,7 +515,7 @@ window.Routines = (() => {
     if (!list) return;
     if (!draft.exercises.length) { list.innerHTML = ''; return; }
 
-    const methods = loadMethods(draft.id);
+    const methods = draft.methods || {};
 
     list.innerHTML = draft.exercises.map((ex, i) => {
       const method = methods[ex.exercise_id] || 'normal';
@@ -378,9 +551,13 @@ window.Routines = (() => {
         </div>
         <select class="input method-select" data-ex-id="${ex.exercise_id}" style="height:36px;font-size:0.8125rem;margin-top:4px;">
           <option value="normal"   ${method === 'normal'   ? 'selected' : ''}>Normal</option>
-          <option value="amrap"    ${method === 'amrap'    ? 'selected' : ''}>AMRAP (dernière série max)</option>
+          <option value="amrap"    ${method === 'amrap'    ? 'selected' : ''}>AMRAP (derniere serie max)</option>
           <option value="dropset"  ${method === 'dropset'  ? 'selected' : ''}>Drop Set (-20%)</option>
           <option value="superset" ${method === 'superset' ? 'selected' : ''}>Superset avec suivant</option>
+          <option value="restpause" ${method === 'restpause' ? 'selected' : ''}>Rest-Pause (set bonus)</option>
+          <option value="tempo"    ${method === 'tempo'    ? 'selected' : ''}>Tempo (3-1-2-0)</option>
+          <option value="htfr"     ${method === 'htfr'     ? 'selected' : ''}>HTFR (lourd / bas reps)</option>
+          <option value="giantset" ${method === 'giantset' ? 'selected' : ''}>Giant Set avec suivants</option>
         </select>
       </div>`;
     }).join('');
@@ -395,9 +572,11 @@ window.Routines = (() => {
       if (remove) { draft.exercises.splice(parseInt(remove.dataset.remove), 1); renderEditorExercises(); }
     });
     list.addEventListener('input', e => {
-      // Méthode avancée
+      // MÃ©thode avancÃ©e
       if (e.target.classList.contains('method-select')) {
-        saveMethod(draft.id, e.target.dataset.exId, e.target.value);
+        const exId = e.target.dataset.exId;
+        if (e.target.value === 'normal') delete draft.methods[exId];
+        else draft.methods[exId] = e.target.value;
         return;
       }
       const field = e.target.dataset.field;
@@ -448,26 +627,63 @@ window.Routines = (() => {
   function renderPickerList(query) {
     const listEl = document.getElementById('exercise-list-modal');
     if (!listEl) return;
+    const GROUP_ORDER = ['pectoraux', 'dos', 'epaules', 'biceps', 'triceps', 'quadriceps', 'jambes', 'fessiers', 'ischios', 'abdos', 'mollets', 'autres'];
+    const GROUP_ICONS = {
+      pectoraux: 'PE',
+      dos: 'DO',
+      epaules: 'EP',
+      biceps: 'BI',
+      triceps: 'TR',
+      quadriceps: 'QU',
+      jambes: 'JA',
+      fessiers: 'FE',
+      ischios: 'IS',
+      abdos: 'AB',
+      mollets: 'MO',
+      autres: 'EX'
+    };
     const q = query.trim().toLowerCase();
     const filtered = q
       ? allExercises.filter(ex => ex.name.toLowerCase().includes(q) || (ex.muscle_group || '').toLowerCase().includes(q))
       : allExercises;
 
     if (!filtered.length) {
-      listEl.innerHTML = `<p class="text-dim" style="padding:20px;text-align:center;">Aucun résultat pour "${query}"</p>`;
+      listEl.className = '';
+      listEl.innerHTML = `<p class="text-dim" style="padding:20px;text-align:center;">Aucun resultat pour "${query}"</p>`;
+      listEl.onclick = null;
       return;
     }
 
-    listEl.innerHTML = filtered.map(ex => `
-      <div class="list-item pressable" style="margin-bottom:6px;" data-pick-id="${ex.id}" data-pick-name="${ex.name}" data-pick-group="${ex.muscle_group || ''}">
-        <div class="list-item-content">
-          <p class="list-item-title">${ex.name}</p>
-          ${ex.muscle_group ? `<p class="list-item-subtitle">${ex.muscle_group}</p>` : ''}
-        </div>
-        <span class="list-item-right">+</span>
-      </div>`).join('');
+    const groups = filtered.reduce((acc, ex) => {
+      const key = ex.muscle_group || 'Autres';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(ex);
+      return acc;
+    }, {});
 
-    listEl.addEventListener('click', e => {
+    const sortedGroups = Object.keys(groups).sort((a, b) => {
+      const aIdx = GROUP_ORDER.indexOf((a || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase());
+      const bIdx = GROUP_ORDER.indexOf((b || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase());
+      if (aIdx !== -1 || bIdx !== -1) return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+      return a.localeCompare(b, 'fr');
+    });
+
+    listEl.className = 'exercise-picker-list';
+    listEl.innerHTML = sortedGroups.map(group => `
+      <section class="exercise-picker-group">
+        <div class="exercise-picker-group-label">${group}</div>
+        ${groups[group].map(ex => `
+          <div class="list-item pressable" style="margin-bottom:6px;" data-pick-id="${ex.id}" data-pick-name="${ex.name}" data-pick-group="${ex.muscle_group || ''}">
+            <div class="list-item-icon" aria-hidden="true">${GROUP_ICONS[(group || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()] || GROUP_ICONS.autres}</div>
+            <div class="list-item-content">
+              <p class="list-item-title">${ex.name}</p>
+              ${ex.muscle_group ? `<p class="list-item-subtitle">${ex.muscle_group}</p>` : ''}
+            </div>
+            <span class="list-item-right">+</span>
+          </div>`).join('')}
+      </section>`).join('');
+
+    listEl.onclick = e => {
       const row = e.target.closest('[data-pick-id]');
       if (!row) return;
       draft.exercises.push({
@@ -476,10 +692,9 @@ window.Routines = (() => {
       });
       document.getElementById('modal-exercise-picker')?.classList.remove('open');
       renderEditorExercises();
-      // Retirer le "Aucun exercice" placeholder si présent
       const empty = document.querySelector('#routines-content > p.text-dim');
       if (empty) empty.remove();
-    }, { once: true });
+    };
   }
 
   /* ---- FAB ---- */

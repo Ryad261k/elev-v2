@@ -69,6 +69,52 @@ window.Auth = {
 };
 
 /* ==========================================
+   CLOUD STATE — Sync simple via user_metadata
+   Pour les préférences / caches légers cross-device
+   ========================================== */
+window.CloudState = (() => {
+  let pendingPatch = {};
+  let flushTimer = null;
+
+  function currentMeta() {
+    return window.AppState?.user?.user_metadata || {};
+  }
+
+  async function flush() {
+    if (!Object.keys(pendingPatch).length) return null;
+    if (!window.AppState?.user || !window.SupabaseClient) return null;
+
+    const patch = { ...pendingPatch };
+    pendingPatch = {};
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+
+    const { data, error } = await window.SupabaseClient.auth.updateUser({
+      data: { ...currentMeta(), ...patch }
+    });
+    if (error) throw error;
+
+    if (data?.user) {
+      window.AppState.user = data.user;
+      window.AppState.session = { ...(window.AppState.session || {}), user: data.user };
+    }
+    return data?.user || null;
+  }
+
+  function schedule(patch, delay = 500) {
+    pendingPatch = { ...pendingPatch, ...(patch || {}) };
+    if (flushTimer) clearTimeout(flushTimer);
+    flushTimer = setTimeout(() => {
+      flush().catch(err => console.error('[CloudState] flush:', err));
+    }, delay);
+  }
+
+  return { schedule, flush };
+})();
+
+/* ==========================================
    DB — Wrappers Supabase (jamais .from() direct)
    Regles : toutes les requêtes passent ici
    ========================================== */

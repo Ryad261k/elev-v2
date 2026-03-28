@@ -28,6 +28,7 @@ window.Weight = (() => {
     else logs.push({ date: dateStr, value: parseFloat(value) });
     logs.sort((a, b) => a.date.localeCompare(b.date));
     localStorage.setItem(getUserKey(WEIGHT_KEY), JSON.stringify(logs));
+    window.CloudState?.schedule({ elev_weight_logs: logs });
   }
 
   function loadMeasurements() {
@@ -37,6 +38,7 @@ window.Weight = (() => {
 
   function saveMeasurements(data) {
     localStorage.setItem(getUserKey(MEASURE_KEY), JSON.stringify(data));
+    window.CloudState?.schedule({ elev_measurements: data });
   }
 
   function loadProfile() {
@@ -46,6 +48,7 @@ window.Weight = (() => {
 
   function saveProfile(data) {
     localStorage.setItem(getUserKey(PROFILE_KEY), JSON.stringify(data));
+    window.CloudState?.schedule({ elev_weight_profile: data });
   }
 
   function loadOnboardingProfile() {

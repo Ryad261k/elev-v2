@@ -2,12 +2,135 @@ window.Nutrition = (() => {
 
   const S     = { date: todayStr() };
   const GOALS = { kcal: 2400, protein: 180, carbs: 240, fat: 80, water: 2000 };
+  const KCAL_PER_GRAM = { protein: 4, carbs: 4, fat: 9 };
+  const GOAL_FIELDS = ['protein', 'carbs', 'fat'];
 
   function loadSavedGoals() {
     try {
       const g = JSON.parse(localStorage.getItem(`elev-nutrition-goals-${DB.userId()}`) || 'null');
       if (g) { GOALS.kcal = g.kcal; GOALS.protein = g.protein; GOALS.carbs = g.carbs; GOALS.fat = g.fat; }
     } catch {}
+  }
+  function goalCalories(goals) {
+    return GOAL_FIELDS.reduce((sum, key) => sum + ((goals[key] || 0) * KCAL_PER_GRAM[key]), 0);
+  }
+  function roundGoal(value) {
+    return Math.max(0, Math.round(value || 0));
+  }
+  function normalizeGoalSet(goals) {
+    return {
+      kcal: roundGoal(goals.kcal),
+      protein: roundGoal(goals.protein),
+      carbs: roundGoal(goals.carbs),
+      fat: roundGoal(goals.fat),
+    };
+  }
+  function fallbackMacroShares() {
+    const fallbackCalories = goalCalories(GOALS);
+    if (fallbackCalories > 0) {
+      return {
+        protein: (GOALS.protein * KCAL_PER_GRAM.protein) / fallbackCalories,
+        carbs: (GOALS.carbs * KCAL_PER_GRAM.carbs) / fallbackCalories,
+        fat: (GOALS.fat * KCAL_PER_GRAM.fat) / fallbackCalories,
+      };
+    }
+    return { protein: 0.3, carbs: 0.45, fat: 0.25 };
+  }
+  function rebalanceGoals(baseGoals, changedField) {
+    const goals = normalizeGoalSet(baseGoals);
+    if (!changedField || changedField === 'kcal') {
+      const targetCalories = roundGoal(goals.kcal);
+      const currentCalories = goalCalories(goals);
+      if (currentCalories > 0) {
+        const factor = targetCalories / currentCalories;
+        GOAL_FIELDS.forEach(key => { goals[key] = roundGoal(goals[key] * factor); });
+      } else {
+        const shares = fallbackMacroShares();
+        GOAL_FIELDS.forEach(key => {
+          goals[key] = roundGoal((targetCalories * shares[key]) / KCAL_PER_GRAM[key]);
+        });
+      }
+      goals.kcal = targetCalories;
+      return goals;
+    }
+
+    if (changedField === 'protein' || changedField === 'fat') {
+      const targetCalories = Math.max(roundGoal(goals.kcal), 0);
+      const remainingForCarbs = targetCalories - ((goals.protein || 0) * KCAL_PER_GRAM.protein) - ((goals.fat || 0) * KCAL_PER_GRAM.fat);
+      goals.carbs = roundGoal(remainingForCarbs / KCAL_PER_GRAM.carbs);
+      goals.kcal = targetCalories;
+      return goals;
+    }
+
+    if (changedField === 'carbs') {
+      goals.kcal = roundGoal(goalCalories(goals));
+      return goals;
+    }
+
+    const targetCalories = Math.max(roundGoal(goals.kcal), 0);
+    const changedCalories = (goals[changedField] || 0) * KCAL_PER_GRAM[changedField];
+    const otherFields = GOAL_FIELDS.filter(key => key !== changedField);
+    const remainingCalories = Math.max(targetCalories - changedCalories, 0);
+    const currentOtherCalories = otherFields.reduce((sum, key) => sum + ((goals[key] || 0) * KCAL_PER_GRAM[key]), 0);
+    const fallbackOtherCalories = otherFields.reduce((sum, key) => sum + ((GOALS[key] || 0) * KCAL_PER_GRAM[key]), 0);
+
+    otherFields.forEach(key => {
+      const baseCalories = currentOtherCalories > 0
+        ? (goals[key] || 0) * KCAL_PER_GRAM[key]
+        : (fallbackOtherCalories > 0 ? (GOALS[key] || 0) * KCAL_PER_GRAM[key] : (key === 'fat' ? 0.25 : 0.375));
+      const share = currentOtherCalories > 0
+        ? baseCalories / currentOtherCalories
+        : (fallbackOtherCalories > 0 ? baseCalories / fallbackOtherCalories : baseCalories);
+      goals[key] = roundGoal((remainingCalories * share) / KCAL_PER_GRAM[key]);
+    });
+
+    goals.kcal = targetCalories;
+    return goals;
+  }
+  function bindGoalAutoSync(modal) {
+    const inputMap = {
+      kcal: modal.querySelector('#g-kcal'),
+      protein: modal.querySelector('#g-protein'),
+      carbs: modal.querySelector('#g-carbs'),
+      fat: modal.querySelector('#g-fat'),
+    };
+    let syncing = false;
+
+    function readGoals() {
+      return {
+        kcal: parseInt(inputMap.kcal?.value, 10) || 0,
+        protein: parseInt(inputMap.protein?.value, 10) || 0,
+        carbs: parseInt(inputMap.carbs?.value, 10) || 0,
+        fat: parseInt(inputMap.fat?.value, 10) || 0,
+      };
+    }
+    function writeGoals(goals) {
+      inputMap.kcal.value = goals.kcal;
+      inputMap.protein.value = goals.protein;
+      inputMap.carbs.value = goals.carbs;
+      inputMap.fat.value = goals.fat;
+    }
+    function syncFrom(changedField) {
+      if (syncing) return;
+      syncing = true;
+      writeGoals(rebalanceGoals(readGoals(), changedField));
+      syncing = false;
+    }
+
+    Object.entries(inputMap).forEach(([field, input]) => {
+      input?.addEventListener('input', () => syncFrom(field));
+    });
+
+    return {
+      hydrate(goals) {
+        syncing = true;
+        writeGoals(normalizeGoalSet(goals));
+        syncing = false;
+      },
+      read() {
+        return normalizeGoalSet(readGoals());
+      },
+    };
   }
   const CATEGORIES = [
     { name: 'Petit-déjeuner', emoji: '☕', kcalGoal: 720 },
@@ -271,9 +394,26 @@ window.Nutrition = (() => {
   function waterKey() {
     return `elev-water-${DB.userId()}-${S.date}`;
   }
+  function loadWaterLogs() {
+    const uid = DB.userId();
+    const out = {};
+    try {
+      Object.keys(localStorage).forEach(key => {
+        const prefix = `elev-water-${uid}-`;
+        if (!key.startsWith(prefix)) return;
+        const date = key.slice(prefix.length);
+        out[date] = parseInt(localStorage.getItem(key) || '0', 10) || 0;
+      });
+    } catch {}
+    return out;
+  }
+  function syncWaterLogs() {
+    const trimmed = Object.fromEntries(Object.entries(loadWaterLogs()).sort((a, b) => a[0].localeCompare(b[0])).slice(-120));
+    window.CloudState?.schedule({ elev_water_logs: trimmed });
+  }
   function getWater()          { return parseInt(localStorage.getItem(waterKey()) || '0', 10); }
-  function addWater(ml)        { localStorage.setItem(waterKey(), getWater() + ml); renderWater(); if (navigator.vibrate) navigator.vibrate(6); }
-  function resetWater()        { localStorage.setItem(waterKey(), '0'); renderWater(); }
+  function addWater(ml)        { localStorage.setItem(waterKey(), getWater() + ml); syncWaterLogs(); renderWater(); if (navigator.vibrate) navigator.vibrate(6); }
+  function resetWater()        { localStorage.setItem(waterKey(), '0'); syncWaterLogs(); renderWater(); }
 
   function renderWater() {
     const el = document.getElementById('nutrition-hydration');
@@ -403,21 +543,19 @@ window.Nutrition = (() => {
       document.body.appendChild(modal);
       modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
       modal.querySelector('#close-goals-modal').addEventListener('click', () => modal.classList.remove('open'));
+      modal._goalSync = bindGoalAutoSync(modal);
       modal.querySelector('#save-goals-btn').addEventListener('click', () => {
-        const v = id => parseInt(document.getElementById(id)?.value) || 0;
-        const g = { kcal: v('g-kcal'), protein: v('g-protein'), carbs: v('g-carbs'), fat: v('g-fat') };
+        const g = normalizeGoalSet(modal._goalSync?.read() || GOALS);
         if (!g.kcal) { showToast('Entre un objectif calorique', 'error'); return; }
         GOALS.kcal = g.kcal; GOALS.protein = g.protein; GOALS.carbs = g.carbs; GOALS.fat = g.fat;
         localStorage.setItem(`elev-nutrition-goals-${DB.userId()}`, JSON.stringify(g));
+        window.CloudState?.schedule({ elev_goals: g });
         modal.classList.remove('open');
         showToast('Objectifs mis à jour ✓', 'success');
         renderDay();
       });
     }
-    document.getElementById('g-kcal').value    = GOALS.kcal;
-    document.getElementById('g-protein').value = GOALS.protein;
-    document.getElementById('g-carbs').value   = GOALS.carbs;
-    document.getElementById('g-fat').value     = GOALS.fat;
+    modal._goalSync?.hydrate(GOALS);
     requestAnimationFrame(() => modal.classList.add('open'));
   }
 

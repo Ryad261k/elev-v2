@@ -5,7 +5,7 @@
 
 (function () {
 
-  const TABS = ['home', 'workouts', 'routines', 'nutrition', 'weight', 'history'];
+  const TABS = ['routines', 'weight', 'home', 'nutrition', 'history', 'workouts'];
   const SWIPE_MIN_X = 55;   // px horizontal minimum
   const SWIPE_MAX_Y = 60;   // px vertical maximum (pour ne pas interférer avec le scroll)
   const PULL_MIN    = 70;   // px tirage vertical pour déclencher le refresh

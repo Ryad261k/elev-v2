@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0e0e0c" id="meta-theme-color" />
+  <meta name="theme-color" content="#F0EDE6" id="meta-theme-color" />
   <meta name="description" content="Élev — Suivi musculation & nutrition" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-  <!-- Prevent FOUC: apply theme before first paint — dark is default -->
+  <!-- Prevent FOUC: apply theme before first paint — light is default -->
   <script>
     (function() {
       var saved = localStorage.getItem('elev-theme');
-      if (saved === 'light') {
-        document.documentElement.dataset.theme = 'light';
+      if (saved === 'dark') {
+        document.documentElement.dataset.theme = 'dark';
       }
-      // Dark is default (no dataset attribute needed = :root applies)
+      // Light is default (no dataset attribute needed = :root applies)
     })();
   </script>
 
@@ -154,25 +154,27 @@
 
         <!-- Header -->
         <header class="page-header">
-          <!-- Utility row (top right) -->
-          <div class="flex items-center justify-between" style="margin-bottom:4px;">
-            <p class="page-header-eyebrow" id="home-date"></p>
-            <div class="flex items-center gap-8">
+          <div class="home-header-row">
+            <div>
+              <p class="page-header-eyebrow" id="home-date"></p>
+              <p class="home-brand-mark">ÉLEV</p>
+            </div>
+            <div class="home-header-actions">
               <button id="btn-theme-toggle" aria-label="Basculer le thème"
-                      style="background:none;border:none;cursor:pointer;font-size:1rem;padding:4px;color:var(--cream-dim);">
-                <span id="theme-icon">☀️</span>
+                      class="home-header-btn home-header-btn-icon">
+                <span id="theme-icon">☾</span>
               </button>
               <button id="btn-open-profile"
-                      style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:4px;color:var(--cream-dim);"
+                      class="home-header-btn home-header-btn-icon"
                       aria-label="Mon profil">👤</button>
               <button id="btn-signout"
-                      style="background:none;border:none;cursor:pointer;font-size:0.6875rem;padding:4px 8px;color:var(--cream-dim);font-family:var(--font-sans);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">
+                      class="home-header-btn home-header-btn-pill">
                 Déco
               </button>
             </div>
           </div>
           <h1 class="page-header-title home-greeting" id="home-greeting">Bonjour</h1>
-          <p class="page-header-sub" id="home-subtitle" style="transition:opacity 0.3s ease;font-weight:300;">Prêt pour aujourd'hui ?</p>
+          <p class="page-header-sub" id="home-subtitle">Prêt pour aujourd'hui ?</p>
           <!-- Streak badge -->
           <div class="streak-badge" id="home-streak-badge" style="display:none;">
             <span>🔥</span><span id="home-streak-count">0 jour</span>
@@ -490,41 +492,41 @@
          ================================================ -->
     <nav class="navbar" role="tablist" aria-label="Navigation principale">
 
-      <button class="nav-tab active" role="tab" aria-selected="true"
-              data-tab="home" aria-controls="tab-home">
-        <span class="nav-icon" aria-hidden="true">🏠</span>
-        <span class="nav-label">Accueil</span>
-      </button>
-
       <button class="nav-tab" role="tab" aria-selected="false"
-              data-tab="workouts" aria-controls="tab-workouts"
-              id="nav-tab-workouts" style="display:none;">
-        <span class="nav-icon" aria-hidden="true">💪</span>
+              data-tab="routines" aria-controls="tab-routines">
+        <span class="nav-icon" aria-hidden="true">◫</span>
         <span class="nav-label">Séance</span>
       </button>
 
       <button class="nav-tab" role="tab" aria-selected="false"
-              data-tab="routines" aria-controls="tab-routines">
-        <span class="nav-icon" aria-hidden="true">📋</span>
-        <span class="nav-label">Routines</span>
+              data-tab="weight" aria-controls="tab-weight">
+        <span class="nav-icon" aria-hidden="true">◌</span>
+        <span class="nav-label">Poids</span>
+      </button>
+
+      <button class="nav-tab active" role="tab" aria-selected="true"
+              data-tab="home" aria-controls="tab-home">
+        <span class="nav-icon" aria-hidden="true">⌂</span>
+        <span class="nav-label">Accueil</span>
       </button>
 
       <button class="nav-tab" role="tab" aria-selected="false"
               data-tab="nutrition" aria-controls="tab-nutrition">
-        <span class="nav-icon" aria-hidden="true">🥗</span>
+        <span class="nav-icon" aria-hidden="true">◒</span>
         <span class="nav-label">Nutrition</span>
       </button>
 
       <button class="nav-tab" role="tab" aria-selected="false"
-              data-tab="weight" aria-controls="tab-weight">
-        <span class="nav-icon" aria-hidden="true">⚖️</span>
-        <span class="nav-label">Poids</span>
+              data-tab="history" aria-controls="tab-history">
+        <span class="nav-icon" aria-hidden="true">◴</span>
+        <span class="nav-label">Stats</span>
       </button>
 
-      <button class="nav-tab" role="tab" aria-selected="false"
-              data-tab="history" aria-controls="tab-history">
-        <span class="nav-icon" aria-hidden="true">📊</span>
-        <span class="nav-label">Historique</span>
+      <button class="nav-tab nav-tab-session" role="tab" aria-selected="false"
+              data-tab="workouts" aria-controls="tab-workouts"
+              id="nav-tab-workouts" style="display:none;">
+        <span class="nav-icon" aria-hidden="true">↗</span>
+        <span class="nav-label">Séance</span>
       </button>
 
     </nav>
@@ -556,6 +558,7 @@
   <script src="js/workouts.js"></script>
   <script src="js/routines.js"></script>
   <script src="js/fooddb.js"></script>
+  <script src="js/food-catalog.js"></script>
   <script src="js/barcode.js"></script>
   <script src="js/food-picker.js"></script>
   <script src="js/nutrition.js"></script>

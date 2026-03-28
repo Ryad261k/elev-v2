@@ -88,6 +88,7 @@ window.BarcodeScanner = (() => {
     setStatus('Recherche du produit…');
     try {
       const food = await fetchProduct(code);
+      window.FoodCatalog?.cacheFoods?.([food]);
       if (navigator.vibrate) navigator.vibrate(40);
       close();
       if (onResult) onResult(food);

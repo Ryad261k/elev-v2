@@ -4,11 +4,33 @@ window.Workouts = (() => {
     session: null, routine: null,
     loggedSets: {}, notes: {},
     prBest: {},    clockTimer: null,
-    methods: {},   // { [exerciseId]: 'normal'|'amrap'|'dropset'|'superset' }
+    methods: {},   // { [exerciseId]: 'normal'|'amrap'|'dropset'|'superset'|'restpause'|'tempo'|'htfr'|'giantset' }
     exerciseOrder: [], // liste ordonnée des exercise.id pour Superset
   };
 
-  const METHOD_LABELS = { amrap: '🔁 AMRAP', dropset: '📉 DROP SET', superset: '⚡ SUPERSET' };
+  const METHOD_LABELS = {
+    amrap: '🔁 AMRAP',
+    dropset: '📉 DROP SET',
+    superset: '⚡ SUPERSET',
+    restpause: '⏱ REST-PAUSE',
+    tempo: '🎵 TEMPO',
+    htfr: '🏋 HTFR',
+    giantset: '🔥 GIANT SET'
+  };
+
+  function getMethodConfig(method) {
+    const map = {
+      normal:    { rest: 90 },
+      amrap:     { rest: 90 },
+      dropset:   { rest: 90 },
+      superset:  { rest: 30 },
+      restpause: { rest: 20 },
+      tempo:     { rest: 120, hint: 'Tempo conseillé : 3-1-2-0' },
+      htfr:      { rest: 150, hint: 'HTFR : lourd, propre, repos long' },
+      giantset:  { rest: 20, hint: 'Enchaîne les 3 exercices du bloc' }
+    };
+    return map[method] || map.normal;
+  }
 
   function loadSessionMethods(routineId) {
     if (!routineId) return {};
@@ -77,6 +99,26 @@ window.Workouts = (() => {
       if (data?.length) return data;
     }
     return [];
+  }
+
+  function getDefaultReps(method, defaultReps) {
+    if (method === 'htfr') return Math.min(defaultReps || 6, 6);
+    return defaultReps;
+  }
+
+  function getSetRows(exId) {
+    return Array.from(document.getElementById(`sets-${exId}`)?.children || []);
+  }
+
+  function renumberRows(exId) {
+    getSetRows(exId).forEach((rowEl, idx) => {
+      const num = rowEl.querySelector('.set-num-v2');
+      if (num) num.textContent = idx + 1;
+    });
+    const arr = S.loggedSets[exId];
+    if (arr?.length) {
+      arr.sort((a, b) => a.n - b.n).forEach((set, idx) => { set.n = idx + 1; });
+    }
   }
 
   function showWorkoutsTab() {
@@ -153,15 +195,19 @@ window.Workouts = (() => {
       if (prev.length) S.prBest[re.exercise.id] = Math.max(...prev.map(s => s.weight || 0));
       list.insertAdjacentHTML('beforeend', buildExerciseCard(re, prev, i));
     }
-    // Mettre à jour les hints superset (les noms des exercices suivants sont maintenant dans le DOM)
+    // Mettre à jour les hints de séquences (les noms des exercices suivants sont maintenant dans le DOM)
     exercises.forEach((re, idx) => {
       const method = S.methods[re.exercise.id] || 'normal';
-      if (method === 'superset') {
-        const hint = document.getElementById(`superset-hint-${re.exercise.id}`);
+      if (method === 'superset' || method === 'giantset') {
+        const hint = document.getElementById(`method-hint-${re.exercise.id}`);
         if (hint) {
-          const nextId = idx < exercises.length - 1 ? exercises[idx + 1].exercise.id : null;
-          const nextName = nextId ? (document.getElementById(`card-title-${nextId}`)?.textContent || 'exercice suivant') : 'exercice suivant';
-          hint.innerHTML = `<span class="method-badge method-superset">⚡ Enchaîne avec → ${nextName}</span>`;
+          const sliceEnd = idx + (method === 'giantset' ? 3 : 2);
+          const nextNames = exercises.slice(idx + 1, sliceEnd)
+            .map(item => document.getElementById(`card-title-${item.exercise.id}`)?.textContent || 'exercice suivant');
+          const label = method === 'giantset'
+            ? `🔥 Enchaîne avec → ${nextNames.join(' • ')}`
+            : `⚡ Enchaîne avec → ${nextNames[0] || 'exercice suivant'}`;
+          hint.innerHTML = `<span class="method-badge method-${method}">${label}</span>`;
         }
       }
     });
@@ -204,22 +250,31 @@ window.Workouts = (() => {
     const wu = calcWarmup(re.weight);
     const method = S.methods[ex.id] || 'normal';
     const prevHTML = prevSets.length
-      ? prevSets.map(s => `<span class="badge badge-surface">${s.reps}×${s.weight}kg</span>`).join('')
+      ? prevSets.map(s => `<span class="badge badge-surface">${s.reps}×${s.weight}kg${s.rpe ? ` @${s.rpe}` : ''}</span>`).join('')
       : '<span style="font-size:0.75rem;color:var(--cream-dim);opacity:.6;">Première fois</span>';
     const wuHTML = wu.map(w => `<span class="badge badge-surface">${w.label} ${w.reps}×${w.w}kg</span>`).join('');
     const methodBadge = method !== 'normal'
       ? `<span class="method-badge method-${method}">${METHOD_LABELS[method]}</span>`
       : '';
 
-    let supersetHTML = '';
-    if (method === 'superset') {
+    let methodHintHTML = '';
+    if (method === 'superset' || method === 'giantset') {
       const idx = S.exerciseOrder.indexOf(ex.id);
-      const nextId = idx !== -1 && idx < S.exerciseOrder.length - 1 ? S.exerciseOrder[idx + 1] : null;
-      const nextName = nextId
-        ? (document.getElementById(`card-title-${nextId}`)?.textContent || '…')
-        : null;
-      supersetHTML = `<div id="superset-hint-${ex.id}" style="padding:0 16px 10px;">
-        <span class="method-badge method-superset">⚡ Enchaîne avec → ${nextName || '…'}</span>
+      const nextIds = idx !== -1
+        ? S.exerciseOrder.slice(idx + 1, idx + (method === 'giantset' ? 3 : 2))
+        : [];
+      const nextNames = nextIds
+        .map(id => document.getElementById(`card-title-${id}`)?.textContent || '…');
+      const label = method === 'giantset'
+        ? `🔥 Enchaîne avec → ${nextNames.join(' • ') || '…'}`
+        : `⚡ Enchaîne avec → ${nextNames[0] || '…'}`;
+      methodHintHTML = `<div id="method-hint-${ex.id}" style="padding:0 16px 10px;">
+        <span class="method-badge method-${method}">${label}</span>
+      </div>`;
+    }
+    if (!methodHintHTML && getMethodConfig(method).hint) {
+      methodHintHTML = `<div style="padding:0 16px 10px;">
+        <span class="method-badge method-${method}">${getMethodConfig(method).hint}</span>
       </div>`;
     }
 
@@ -254,11 +309,12 @@ window.Workouts = (() => {
             <span style="text-align:center;">#</span>
             <span style="text-align:center;">Reps</span>
             <span style="text-align:center;">Poids (kg)</span>
+            <span style="text-align:center;">RPE</span>
             <span></span>
           </div>
           <div id="sets-${ex.id}" class="sets-list"></div>
         </div>
-        ${supersetHTML}
+        ${methodHintHTML}
         <div style="padding:8px 16px 14px;">
           <button class="btn btn-secondary btn-sm btn-full"
             data-add-set="${ex.id}" data-reps="${re.reps}" data-weight="${re.weight}">+ Ajouter un set</button>
@@ -273,16 +329,19 @@ window.Workouts = (() => {
     if (!list) return;
     const method = S.methods[exId] || 'normal';
     const isAmrapLast = isLast && method === 'amrap';
+    const baseReps = getDefaultReps(method, defaultReps);
+    const rpePlaceholder = method === 'htfr' ? '9' : '8';
     const el = document.createElement('div');
     el.className = 'swipeable';
     el.innerHTML = `
       <div class="swipe-delete-bg">🗑</div>
       <div class="swipe-content set-row-v2 current">
         <span class="set-num-v2">${n}</span>
-        <input type="number" class="input set-input-v2" value="${isAmrapLast ? '' : defaultReps}"
+        <input type="number" class="input set-input-v2" value="${isAmrapLast ? '' : baseReps}"
           min="1" max="999" inputmode="numeric" aria-label="Répétitions"
           placeholder="${isAmrapLast ? 'max' : ''}">
         <input type="number" class="input set-input-v2" value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
+        <input type="number" class="input set-input-v2" value="" min="1" max="10" step="0.5" inputmode="decimal" aria-label="RPE" placeholder="${rpePlaceholder}">
         <button class="btn-check-v2${isAmrapLast ? ' amrap-btn' : ''}" aria-label="Valider">
           ${isAmrapLast ? '∞' : '✓'}
         </button>
@@ -290,13 +349,15 @@ window.Workouts = (() => {
     list.appendChild(el);
     initSwipe(el, () => {
       el.remove();
-      list.querySelectorAll('.set-num-v2').forEach((s, i) => { s.textContent = i + 1; });
+      renumberRows(exId);
     });
     el.querySelector('.btn-check-v2').addEventListener('click', ev => {
       const row = el.querySelector('.swipe-content');
       const inputs = el.querySelectorAll('.set-input-v2');
-      const rIn = inputs[0], wIn = inputs[1];
-      const reps = parseInt(rIn.value) || 0, weight = parseFloat(wIn.value) || 0;
+      const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
+      const reps = parseInt(rIn.value) || 0;
+      const weight = parseFloat(wIn.value) || 0;
+      const rpe = parseFloat(rpeIn.value);
 
       // AMRAP : ne pas valider si reps vide
       if (isAmrapLast && !reps) {
@@ -304,11 +365,16 @@ window.Workouts = (() => {
         rIn.focus();
         return;
       }
+      if (!isNaN(rpe) && (rpe < 1 || rpe > 10)) {
+        showToast('Le RPE doit être entre 1 et 10', 'error');
+        rpeIn.focus();
+        return;
+      }
 
       const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
       const found = arr.find(s => s.n === n);
-      if (found) { found.reps = reps; found.weight = weight; }
-      else arr.push({ n, reps, weight });
+      if (found) { found.reps = reps; found.weight = weight; found.rpe = isNaN(rpe) ? null : rpe; }
+      else arr.push({ n, reps, weight, rpe: isNaN(rpe) ? null : rpe, methodTag: method });
 
       const prevBest = S.prBest[exId];
       const isPR = prevBest !== undefined && weight > prevBest;
@@ -327,15 +393,19 @@ window.Workouts = (() => {
       } else {
         btn.classList.add('done');
         btn.textContent = '✓';
-        showToast(`Série ${n} · ${reps}×${weight}kg`, 'success', 1800);
+        showToast(`Série ${n} · ${reps}×${weight}kg${isNaN(rpe) ? '' : ` @${rpe}`}`, 'success', 1800);
       }
-      window.RestTimer?.start(90);
+      window.RestTimer?.start(getMethodConfig(method).rest);
 
       // Drop Set : après validation de la dernière série normale
       if (isLast && method === 'dropset') {
         const dropWeight = Math.round((weight * 0.8) / 2.5) * 2.5;
         const nextN = list.children.length + 1;
         appendDropSetRow(exId, nextN, dropWeight);
+      }
+      if (isLast && method === 'restpause') {
+        const nextN = list.children.length + 1;
+        appendRestPauseRow(exId, nextN, weight);
       }
     });
   }
@@ -354,28 +424,68 @@ window.Workouts = (() => {
         <span class="set-num-v2" style="color:var(--accent-blue,#8b9ec8);">${n}</span>
         <input type="number" class="input set-input-v2" placeholder="max" min="1" max="999" inputmode="numeric" aria-label="Répétitions">
         <input type="number" class="input set-input-v2" value="${dropWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
+        <input type="number" class="input set-input-v2" value="" min="1" max="10" step="0.5" inputmode="decimal" aria-label="RPE" placeholder="9">
         <button class="btn-check-v2" style="border-color:rgba(139,158,200,0.4);color:var(--accent-blue,#8b9ec8);font-size:0.5625rem;font-weight:700;" aria-label="Valider drop set">DROP</button>
       </div>`;
     list.appendChild(el);
     initSwipe(el, () => {
       el.remove();
-      list.querySelectorAll('.set-num-v2').forEach((s, i) => { s.textContent = i + 1; });
+      renumberRows(exId);
     });
     el.querySelector('.btn-check-v2').addEventListener('click', ev => {
       const row = el.querySelector('.swipe-content');
       const inputs = el.querySelectorAll('.set-input-v2');
-      const rIn = inputs[0], wIn = inputs[1];
+      const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
       const reps = parseInt(rIn.value) || 0, weight = parseFloat(wIn.value) || 0;
+      const rpe = parseFloat(rpeIn.value);
       if (!reps) { showToast('Entre le nombre de répétitions max pour le drop set', 'error'); rIn.focus(); return; }
       const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
-      arr.push({ n, reps, weight });
+      arr.push({ n, reps, weight, rpe: isNaN(rpe) ? null : rpe, methodTag: 'dropset' });
       const btn = ev.currentTarget;
       row.classList.remove('current');
       row.classList.add('done');
       btn.classList.add('done');
       btn.textContent = '✓';
-      showToast(`Drop set ${n} · ${reps}×${weight}kg`, 'success', 1800);
+      showToast(`Drop set ${n} · ${reps}×${weight}kg${isNaN(rpe) ? '' : ` @${rpe}`}`, 'success', 1800);
       window.RestTimer?.start(90);
+    });
+  }
+
+  function appendRestPauseRow(exId, n, baseWeight) {
+    const list = document.getElementById(`sets-${exId}`);
+    if (!list || list.querySelector('.rest-pause-row')) return;
+    const el = document.createElement('div');
+    el.className = 'swipeable';
+    el.innerHTML = `
+      <div class="swipe-delete-bg">🗑</div>
+      <div class="swipe-content set-row-v2 current rest-pause-row">
+        <span class="set-num-v2" style="color:var(--accent-warm);">${n}</span>
+        <input type="number" class="input set-input-v2" placeholder="max" min="1" max="999" inputmode="numeric" aria-label="Répétitions">
+        <input type="number" class="input set-input-v2" value="${baseWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
+        <input type="number" class="input set-input-v2" value="" min="1" max="10" step="0.5" inputmode="decimal" aria-label="RPE" placeholder="10">
+        <button class="btn-check-v2" style="border-color:rgba(200,149,108,0.4);color:var(--accent-warm);font-size:0.5625rem;font-weight:700;" aria-label="Valider rest-pause">RP</button>
+      </div>`;
+    list.appendChild(el);
+    initSwipe(el, () => {
+      el.remove();
+      renumberRows(exId);
+    });
+    el.querySelector('.btn-check-v2').addEventListener('click', ev => {
+      const row = el.querySelector('.swipe-content');
+      const inputs = el.querySelectorAll('.set-input-v2');
+      const reps = parseInt(inputs[0].value) || 0;
+      const weight = parseFloat(inputs[1].value) || 0;
+      const rpe = parseFloat(inputs[2].value);
+      if (!reps) { showToast('Entre les reps du rest-pause', 'error'); inputs[0].focus(); return; }
+      const arr = S.loggedSets[exId] || (S.loggedSets[exId] = []);
+      arr.push({ n, reps, weight, rpe: isNaN(rpe) ? null : rpe, methodTag: 'restpause' });
+      const btn = ev.currentTarget;
+      row.classList.remove('current');
+      row.classList.add('done');
+      btn.classList.add('done');
+      btn.textContent = '✓';
+      showToast(`Rest-pause ${n} · ${reps}×${weight}kg${isNaN(rpe) ? '' : ` @${rpe}`}`, 'success', 1800);
+      window.RestTimer?.start(20);
     });
   }
 
@@ -406,12 +516,23 @@ window.Workouts = (() => {
           return row;
         })
       );
-      if (rows.length) { const { error } = await DB.from('session_sets').insert(rows); if (error) throw error; }
+      if (rows.length) await insertSessionRows(rows);
       showSummary(endedAt);
     } catch (err) {
       console.error('[Workouts] finishSession:', err);
       showToast('Erreur lors de la sauvegarde', 'error');
     }
+  }
+
+  async function insertSessionRows(rows) {
+    const { error } = await DB.from('session_sets').insert(rows);
+    if (!error) return;
+    const msg = `${error.message || ''} ${error.details || ''}`.toLowerCase();
+    if (!msg.includes('rpe')) throw error;
+    const sanitized = rows.map(({ rpe, ...row }) => row);
+    const retry = await DB.from('session_sets').insert(sanitized);
+    if (retry.error) throw retry.error;
+    showToast('RPE non sauvegardé côté base, mais la séance est bien enregistrée.', 'info', 3200);
   }
 
   // Résumé de séance

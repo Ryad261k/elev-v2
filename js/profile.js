@@ -74,7 +74,30 @@ window.Profile = (() => {
   function avatarKey() { return `elev-avatar-${DB.userId()}`; }
 
   function getAvatar() {
-    try { return localStorage.getItem(avatarKey()); } catch { return null; }
+    try {
+      const local = localStorage.getItem(avatarKey());
+      if (local) return local;
+      const remote = AppState.user?.user_metadata?.elev_avatar || null;
+      if (remote) localStorage.setItem(avatarKey(), remote);
+      return remote;
+    } catch { return AppState.user?.user_metadata?.elev_avatar || null; }
+  }
+
+  async function persistAvatar(b64) {
+    try {
+      const currentMeta = AppState.user?.user_metadata || {};
+      const { data, error } = await window.SupabaseClient.auth.updateUser({
+        data: { ...currentMeta, elev_avatar: b64 }
+      });
+      if (error) throw error;
+      if (data?.user) {
+        AppState.user = data.user;
+        AppState.session = { ...(AppState.session || {}), user: data.user };
+      }
+    } catch (err) {
+      console.error('[Profile] persistAvatar:', err);
+      showToast('Photo enregistrée localement, mais la synchro cloud a échoué.', 'info', 3200);
+    }
   }
 
   function handleAvatarUpload(file) {
@@ -82,7 +105,7 @@ window.Profile = (() => {
     const reader = new FileReader();
     reader.onload = e => {
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         const canvas = document.createElement('canvas');
         const MAX = 200;
         const ratio = Math.min(MAX / img.width, MAX / img.height);
@@ -91,10 +114,13 @@ window.Profile = (() => {
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         const b64 = canvas.toDataURL('image/jpeg', 0.8);
         localStorage.setItem(avatarKey(), b64);
+        await persistAvatar(b64);
         const avatarEl = document.getElementById('profile-avatar-img');
         if (avatarEl) { avatarEl.src = b64; avatarEl.style.display = 'block'; }
         const placeholderEl = document.getElementById('profile-avatar-placeholder');
         if (placeholderEl) placeholderEl.style.display = 'none';
+        window.updateProfileButtonAvatar?.();
+        document.dispatchEvent(new CustomEvent('profileavatarchange'));
         showToast('Photo mise à jour ✓', 'success');
       };
       img.src = e.target.result;

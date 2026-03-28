@@ -4,6 +4,23 @@ window.FoodPicker = (() => {
   let onSave    = null;
   let catLabel  = '';
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function sourceBadge(food, favoriteNames, recentNames) {
+    const normalizedName = window.FoodCatalog?.normalize(food.name) || food.name;
+    if (favoriteNames.has(normalizedName)) return '<span class="food-result-badge favorite">Favori</span>';
+    if (recentNames.has(normalizedName)) return '<span class="food-result-badge recent">Recent</span>';
+    if (food.source === 'off') return '<span class="food-result-badge off">OFF</span>';
+    return '<span class="food-result-badge catalog">Catalogue</span>';
+  }
+
   /* ── Récents (localStorage) ────────────────── */
   function getRecentFoods() {
     try { return JSON.parse(localStorage.getItem('elev-recent-foods') || '[]'); } catch(_) { return []; }
@@ -11,7 +28,9 @@ window.FoodPicker = (() => {
   function addToRecents(food) {
     let recents = getRecentFoods().filter(r => r.name !== food.name);
     recents.unshift(food);
-    localStorage.setItem('elev-recent-foods', JSON.stringify(recents.slice(0, 10)));
+    const trimmed = recents.slice(0, 10);
+    localStorage.setItem('elev-recent-foods', JSON.stringify(trimmed));
+    window.CloudState?.schedule({ elev_recent_foods: trimmed });
   }
 
   /* ── Favoris (localStorage) ────────────────── */
@@ -25,7 +44,9 @@ window.FoodPicker = (() => {
     const idx = favs.findIndex(f => f.name === food.name);
     if (idx >= 0) favs.splice(idx, 1);
     else favs.unshift(food);
-    localStorage.setItem(`elev-food-favorites-${uid}`, JSON.stringify(favs.slice(0, 30)));
+    const trimmed = favs.slice(0, 30);
+    localStorage.setItem(`elev-food-favorites-${uid}`, JSON.stringify(trimmed));
+    window.CloudState?.schedule({ elev_food_favorites: trimmed });
     return idx < 0; // true = ajouté
   }
   function isFavorite(foodName) {
@@ -170,41 +191,68 @@ window.FoodPicker = (() => {
     );
   }
 
-  function renderFoodList(query) {
+  async function renderFoodList(query) {
     const list = document.getElementById('food-results-list');
     if (!list) return;
     let foods;
+    let sections = [];
     if (query.trim()) {
-      foods = FoodDB.search(query);
+      list.innerHTML = `<div style="display:flex;justify-content:center;padding:24px 0;"><div class="spinner"></div></div>`;
+      const recentFoods = getRecentFoods();
+      const favoriteFoods = getFavoriteFoods();
+      if (window.FoodCatalog?.searchDetailed) {
+        const result = await window.FoodCatalog.searchDetailed(query, { recentFoods, favoriteFoods });
+        foods = result.items;
+        sections = result.sections || [];
+      } else {
+        foods = await (window.FoodCatalog?.search(query) || Promise.resolve(FoodDB.search(query)));
+      }
     } else if (activeTab === 'recent') {
       foods = getRecentFoods();
     } else {
       foods = FoodDB.search('').slice(0, 40);
     }
     if (!foods.length) {
-      list.innerHTML = `<p class="food-no-result">Aucun résultat · essaie un aliment personnalisé</p>`;
+      list.innerHTML = `<p class="food-no-result">Aucun resultat local - recherche OFF en cours ou essaie un aliment personnalise</p>`;
       return;
     }
-    list.innerHTML = foods.map((f, i) => `
-      <div class="food-list-row" data-fi="${i}">
-        <div class="food-list-info">
-          <p class="food-list-name">${f.name}</p>
-          <p class="food-list-sub">100g · ${f.protein}P ${f.carbs}G ${f.fat}L</p>
-        </div>
-        <span class="food-list-kcal">${f.kcal} kcal</span>
-        <button class="food-fav-btn${isFavorite(f.name) ? ' active' : ''}" data-fi="${i}" aria-label="Favori">${isFavorite(f.name) ? '⭐' : '☆'}</button>
-        <button class="food-list-add" data-fi="${i}" aria-label="Ajouter">+</button>
-      </div>`).join('');
 
-    list.querySelectorAll('.food-list-row').forEach((row, i) => {
-      row.querySelector('.food-list-info')?.addEventListener('click', () => showFoodDetail(foods[i]));
-      row.querySelector('.food-list-add')?.addEventListener('click', e => { e.stopPropagation(); showFoodDetail(foods[i]); });
+    const favoriteNames = new Set(getFavoriteFoods().map(food => window.FoodCatalog?.normalize(food.name) || food.name));
+    const recentNames = new Set(getRecentFoods().map(food => window.FoodCatalog?.normalize(food.name) || food.name));
+    const groups = sections.length ? sections : [{ key: 'default', title: query.trim() ? 'Resultats' : '', items: foods }];
+    list.innerHTML = groups.map(section => `
+      <section class="food-results-group" data-group="${section.key}">
+        ${section.title ? `<div class="food-results-group-head"><p class="food-results-group-title">${section.title}</p><span class="food-results-group-count">${section.items.length}</span></div>` : ''}
+        <div class="food-results-group-list">
+          ${section.items.map(food => {
+            const globalIndex = foods.indexOf(food);
+            return `
+              <div class="food-list-row" data-fi="${globalIndex}">
+                <div class="food-list-info">
+                  <div class="food-list-topline">
+                    <p class="food-list-name">${escapeHtml(food.name)}</p>
+                    ${sourceBadge(food, favoriteNames, recentNames)}
+                  </div>
+                  <p class="food-list-sub">${food.brand ? `${escapeHtml(food.brand)} - ` : ''}Pour 100 g</p>
+                </div>
+                <span class="food-list-kcal">${food.kcal} kcal</span>
+                <button class="food-fav-btn${isFavorite(food.name) ? ' active' : ''}" data-fi="${globalIndex}" aria-label="Favori">${isFavorite(food.name) ? '&#9733;' : '&#9734;'}</button>
+                <button class="food-list-add" data-fi="${globalIndex}" aria-label="Ajouter">+</button>
+              </div>`;
+          }).join('')}
+        </div>
+      </section>`).join('');
+
+    list.querySelectorAll('.food-list-row').forEach(row => {
+      const index = Number(row.dataset.fi);
+      row.querySelector('.food-list-info')?.addEventListener('click', () => showFoodDetail(foods[index]));
+      row.querySelector('.food-list-add')?.addEventListener('click', e => { e.stopPropagation(); showFoodDetail(foods[index]); });
       row.querySelector('.food-fav-btn')?.addEventListener('click', e => {
         e.stopPropagation();
-        const added = toggleFavorite(foods[i]);
+        const added = toggleFavorite(foods[index]);
         const btn = e.currentTarget;
         btn.classList.toggle('active', added);
-        btn.textContent = added ? '⭐' : '☆';
+        btn.innerHTML = added ? '&#9733;' : '&#9734;';
       });
     });
   }
