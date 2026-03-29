@@ -24,9 +24,9 @@ window.WorkoutsRender = (() => {
             <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">En cours</p>
             <h2 style="font-family:var(--font-serif);font-style:italic;font-size:1.5rem;color:var(--cream);">${s.routine.name}</h2>
           </div>
-          <div style="background:rgba(122,184,147,0.12);border:1px solid rgba(122,184,147,0.22);border-radius:100px;padding:8px 14px;text-align:center;flex-shrink:0;">
-            <div style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--accent);line-height:1;" id="session-elapsed-val">0:00</div>
-            <div style="font-size:0.5625rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);opacity:0.7;margin-top:2px;">Durée</div>
+          <div style="background:rgba(200,98,46,0.12);border:1px solid rgba(200,98,46,0.22);border-radius:100px;padding:8px 14px;text-align:center;flex-shrink:0;">
+            <div style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--accent-primary);line-height:1;" id="session-elapsed-val">0:00</div>
+            <div style="font-size:0.5625rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-primary);opacity:0.7;margin-top:2px;">Durée</div>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -37,7 +37,7 @@ window.WorkoutsRender = (() => {
           </div>
         </div>
         <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden;">
-          <div id="session-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),rgba(122,184,147,0.6));border-radius:100px;transition:width 0.5s ease;"></div>
+          <div id="session-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent-primary),rgba(200,98,46,0.5));border-radius:100px;transition:width 0.5s ease;"></div>
         </div>
       </div>
       <span style="display:none;" id="session-elapsed">0 min</span>

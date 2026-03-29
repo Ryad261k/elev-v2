@@ -9,22 +9,25 @@
    ========================================== */
 .navbar {
   position: fixed;
-  bottom: calc(12px + var(--safe-bottom));
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 398px;
-  height: 58px;
+  width: 100%;
+  max-width: 430px;
+  height: calc(64px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
   z-index: var(--z-navbar);
-  background: rgba(255,255,255,0.9);
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 99px;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  padding-left: 4px;
+  padding-right: 4px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .nav-tab {
@@ -136,13 +139,13 @@
 .nav-tab.active::after { display: none; }
 
 [data-theme="dark"] .navbar {
-  background: rgba(18,18,16,0.92);
-  border-color: rgba(255,255,255,0.1);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.35);
 }
 
 [data-theme="dark"] .nav-tab {
-  color: rgba(245,240,232,0.55);
+  color: rgba(240,235,224,0.4);
 }
 
 [data-theme="dark"] .nav-tab.active {
@@ -3197,8 +3200,8 @@ optgroup {
 }
 
 [data-theme="dark"] .ring-card {
-  background: linear-gradient(135deg, rgba(122,184,147,0.09) 0%, rgba(122,184,147,0.03) 100%);
-  border-color: rgba(122,184,147,0.18);
+  background: var(--bg-card);
+  border-color: var(--border);
 }
 
 [data-theme="dark"] .ring-card::after {
@@ -3206,7 +3209,7 @@ optgroup {
   position: absolute;
   top: -40px; right: -40px;
   width: 160px; height: 160px;
-  background: radial-gradient(circle, rgba(122,184,147,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(200,98,46,0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -3244,9 +3247,9 @@ optgroup {
 .ring-card-pct {
   font-size: 0.7rem;
   font-weight: 600;
-  color: var(--accent);
-  background: rgba(122,184,147,0.12);
-  border: 1px solid rgba(122,184,147,0.2);
+  color: var(--accent-primary);
+  background: var(--accent-primary-soft);
+  border: 1px solid rgba(200,98,46,0.25);
   border-radius: 99px;
   padding: 4px 10px;
   white-space: nowrap;
@@ -3272,9 +3275,9 @@ optgroup {
 [data-theme="light"] .hmr-track { stroke: rgba(0,0,0,0.08); }
 
 .hmr-fill { fill: none; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
-.hmr-fill.gluc { stroke: var(--accent-blue, #8b9ec8); }
-.hmr-fill.prot { stroke: var(--accent); }
-.hmr-fill.lip  { stroke: var(--accent-warm); }
+.hmr-fill.gluc { stroke: var(--accent-warm); }
+.hmr-fill.prot { stroke: var(--accent-blue); }
+.hmr-fill.lip  { stroke: var(--accent-mauve); }
 
 .hmr-val {
   font-size: 0.75rem;
@@ -3875,9 +3878,9 @@ optgroup {
   letter-spacing: 0.08em;
 }
 
-.macro-side-row.prot .macro-side-name { color: var(--accent); }
-.macro-side-row.gluc .macro-side-name { color: var(--color-carbs); }
-.macro-side-row.lip  .macro-side-name { color: var(--accent-warm); }
+.macro-side-row.prot .macro-side-name { color: var(--accent-blue); }
+.macro-side-row.gluc .macro-side-name { color: var(--accent-warm); }
+.macro-side-row.lip  .macro-side-name { color: var(--accent-mauve); }
 
 .macro-side-val { font-size: 0.75rem; font-weight: 600; color: var(--cream); }
 .macro-side-goal { font-size: 0.625rem; color: var(--cream-dim); font-weight: 400; }
@@ -3895,9 +3898,9 @@ optgroup {
   transition: width 0.6s ease;
 }
 
-.macro-side-fill.prot { background: var(--accent);      box-shadow: 0 0 6px rgba(122,184,147,0.4); }
-.macro-side-fill.gluc { background: var(--color-carbs); box-shadow: 0 0 6px rgba(139,158,200,0.4); }
-.macro-side-fill.lip  { background: var(--accent-warm); box-shadow: 0 0 6px rgba(200,149,108,0.4); }
+.macro-side-fill.prot { background: var(--accent-blue);  box-shadow: 0 0 6px rgba(91,155,245,0.4); }
+.macro-side-fill.gluc { background: var(--accent-warm);  box-shadow: 0 0 6px rgba(245,166,35,0.4); }
+.macro-side-fill.lip  { background: var(--accent-mauve); box-shadow: 0 0 6px rgba(192,132,252,0.4); }
 
 /* Summary bottom 3-col grid */
 .nutr-summary-bottom {
