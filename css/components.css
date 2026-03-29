@@ -4056,6 +4056,179 @@ optgroup {
 }
 
 /* =============================================
+   NUTRITION V2 — HERO CARD + MEAL CARDS
+   ============================================= */
+
+/* Header */
+.nutr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 52px;
+  margin-bottom: 16px;
+}
+.nutr-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.75rem;
+  color: var(--cream);
+  line-height: 1;
+}
+
+/* Hero card */
+.nutr-hero-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 4px;
+  box-shadow: var(--card-shadow);
+}
+.nutr-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.nutr-hero-kcal {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--cream);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.nutr-hero-kcal-unit { font-size: 1.1rem; font-weight: 400; color: var(--cream-dim); }
+.nutr-hero-sub { font-size: 0.75rem; color: var(--cream-dim); }
+.nutr-hero-pct-badge {
+  background: var(--accent-primary-soft);
+  border: 1px solid rgba(200,98,46,0.2);
+  border-radius: 100px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+.nutr-macro-chips {
+  display: flex;
+  gap: 10px;
+}
+.nutr-macro-chip {
+  flex: 1;
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 10px 12px 8px;
+}
+.nutr-chip-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cream);
+  margin-bottom: 2px;
+}
+.nutr-chip-label {
+  font-size: 0.6rem;
+  color: var(--cream-dim);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nutr-chip-bar {
+  height: 3px;
+  border-radius: 100px;
+  width: 0%;
+  transition: width 0.7s cubic-bezier(0.34,1.2,0.64,1);
+}
+
+/* Meal cards v2 — expand/collapse */
+.meal-card-v2 {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+.meal-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  gap: 12px;
+}
+.meal-chevron-v2 {
+  font-size: 1.1rem;
+  color: var(--cream-dim);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.meal-expanded-v2 {
+  border-top: 1px solid var(--border);
+  padding: 8px 16px 14px;
+}
+
+/* Inline add button */
+.btn-add-food-inline {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1.5px dashed rgba(200,98,46,0.4);
+  border-radius: 10px;
+  background: rgba(200,98,46,0.05);
+  color: var(--accent-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-add-food-inline:hover { background: rgba(200,98,46,0.1); border-color: rgba(200,98,46,0.6); }
+
+/* Nouveau repas card */
+.nutr-new-meal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--card-shadow);
+}
+.nutr-new-meal-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  margin-bottom: 4px;
+}
+.nutr-new-meal-name {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--cream);
+}
+.nutr-new-meal-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--accent-primary);
+  border-radius: 50%;
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(200,98,46,0.4);
+  transition: transform 0.15s, filter 0.15s;
+  flex-shrink: 0;
+}
+.nutr-new-meal-btn:hover { transform: scale(1.08); filter: brightness(1.1); }
+
+/* =============================================
    MAQUETTE — NUTRITION PAGE COMPONENTS
    ============================================= */
 

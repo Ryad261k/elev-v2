@@ -84,21 +84,41 @@ window.NutritionUI = (() => {
   /* ── Macro display ─────────────────────────── */
   function updateMacroDisplay(tot) {
     const GOALS = NS().GOALS;
-    const CIRC  = 251;
-    const ring  = document.getElementById('nutrition-ring');
-    if (ring) ring.setAttribute('stroke-dashoffset', (CIRC * (1 - Math.min(tot.kcal / GOALS.kcal, 1))).toFixed(1));
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = Math.round(v); };
-    const bar = (id, v, g) => { const el = document.getElementById(id); if (el) el.style.width = Math.min(v / g * 100, 100) + '%'; };
-    set('nutrition-kcal-eaten',     tot.kcal);
-    set('nutrition-kcal-remaining', Math.max(0, GOALS.kcal - Math.round(tot.kcal)));
-    set('nutrition-protein', tot.protein); bar('nutrition-protein-bar', tot.protein, GOALS.protein);
-    set('nutrition-carbs',   tot.carbs);   bar('nutrition-carbs-bar',   tot.carbs,   GOALS.carbs);
-    set('nutrition-fat',     tot.fat);     bar('nutrition-fat-bar',     tot.fat,     GOALS.fat);
-    set('goal-protein', GOALS.protein); set('goal-carbs', GOALS.carbs); set('goal-fat', GOALS.fat);
-    const netEl  = document.getElementById('nutrition-net-goal');
-    if (netEl) netEl.textContent = GOALS.kcal;
+
+    // Hero kcal
+    const kcalEl = document.getElementById('nutrition-kcal-eaten');
+    if (kcalEl) kcalEl.textContent = Math.round(tot.kcal);
+
+    // Pct badge
+    const pct = Math.min(Math.round(tot.kcal / (GOALS.kcal || 1) * 100), 100);
+    const pctEl = document.getElementById('nutr-hero-pct');
+    if (pctEl) pctEl.textContent = '🎯 ' + pct + '%';
+
+    // Goal sub-label
     const goalEl = document.querySelector('[data-goal-kcal]');
     if (goalEl) goalEl.textContent = GOALS.kcal;
+
+    // Macro chips values
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = Math.round(v); };
+    set('nutrition-protein', tot.protein);
+    set('nutrition-carbs',   tot.carbs);
+    set('nutrition-fat',     tot.fat);
+
+    // Macro chip bars (width %)
+    const bar = (id, v, g) => { const el = document.getElementById(id); if (el) el.style.width = Math.min(v / (g || 1) * 100, 100) + '%'; };
+    bar('nutrition-protein-bar', tot.protein, GOALS.protein);
+    bar('nutrition-carbs-bar',   tot.carbs,   GOALS.carbs);
+    bar('nutrition-fat-bar',     tot.fat,     GOALS.fat);
+
+    // Legacy compat (hidden elements)
+    const CIRC = 251;
+    const ring = document.getElementById('nutrition-ring');
+    if (ring) ring.setAttribute('stroke-dashoffset', (CIRC * (1 - Math.min(tot.kcal / GOALS.kcal, 1))).toFixed(1));
+    const remEl = document.getElementById('nutrition-kcal-remaining');
+    if (remEl) remEl.textContent = Math.max(0, GOALS.kcal - Math.round(tot.kcal));
+    const netEl = document.getElementById('nutrition-net-goal');
+    if (netEl) netEl.textContent = GOALS.kcal;
+    set('goal-protein', GOALS.protein); set('goal-carbs', GOALS.carbs); set('goal-fat', GOALS.fat);
   }
 
   /* ── Micros ────────────────────────────────── */

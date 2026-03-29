@@ -305,101 +305,67 @@
     <section id="tab-nutrition" class="tab-content" role="tabpanel" aria-label="Nutrition">
       <div class="page-container">
 
-        <header class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;">
-          <div>
-            <p class="page-header-eyebrow">Alimentation</p>
-            <h1 class="page-header-title">Nutrition</h1>
-          </div>
-          <!-- Date nav pill -->
+        <!-- Header -->
+        <div class="nutr-header">
+          <h1 class="nutr-title">Nutrition</h1>
           <div class="date-nav-pill">
             <button class="date-nav-arrow" id="nutrition-prev-day" aria-label="Jour précédent">‹</button>
             <span class="date-nav-today" id="nutrition-date">Aujourd'hui</span>
             <button class="date-nav-arrow" id="nutrition-next-day" aria-label="Jour suivant">›</button>
           </div>
-        </header>
+        </div>
 
-        <!-- Résumé — nouvelle carte avec 100px ring -->
-        <div class="nutr-summary-card" id="nutrition-summary-card">
-          <div class="nutr-summary-top">
-            <!-- Ring 100px calories -->
-            <div class="cal-ring-wrap">
-              <svg width="100" height="100" viewBox="0 0 100 100" aria-hidden="true">
-                <circle class="cal-ring-track" cx="50" cy="50" r="40"/>
-                <circle class="cal-ring-fill" id="nutrition-ring" cx="50" cy="50" r="40"
-                  stroke-dasharray="251" stroke-dashoffset="251"
-                  stroke-linecap="round" transform="rotate(-90 50 50)"/>
-              </svg>
-              <div class="cal-center">
-                <div class="cal-val" id="nutrition-kcal-eaten">0</div>
-                <div class="cal-unit">KCAL</div>
-                <div class="cal-goal">/ <span data-goal-kcal>2400</span></div>
-              </div>
+        <!-- Hero card -->
+        <div class="nutr-hero-card">
+          <div class="nutr-hero-top">
+            <div>
+              <div class="nutr-hero-kcal"><span id="nutrition-kcal-eaten">0</span> <span class="nutr-hero-kcal-unit">kcal</span></div>
+              <div class="nutr-hero-sub">sur <span data-goal-kcal>2400</span> kcal</div>
             </div>
-            <!-- Macros side -->
-            <div class="macros-side">
-              <div class="macro-side-row gluc">
-                <div class="macro-side-head">
-                  <span class="macro-side-name">Glucides</span>
-                  <span class="macro-side-val"><span id="nutrition-carbs">0</span>g <span class="macro-side-goal">/ <span id="goal-carbs">240</span>g</span></span>
-                </div>
-                <div class="macro-side-bar"><div class="macro-side-fill gluc" id="nutrition-carbs-bar" style="width:0%;"></div></div>
-              </div>
-              <div class="macro-side-row prot">
-                <div class="macro-side-head">
-                  <span class="macro-side-name">Protéines</span>
-                  <span class="macro-side-val"><span id="nutrition-protein">0</span>g <span class="macro-side-goal">/ <span id="goal-protein">180</span>g</span></span>
-                </div>
-                <div class="macro-side-bar"><div class="macro-side-fill prot" id="nutrition-protein-bar" style="width:0%;"></div></div>
-              </div>
-              <div class="macro-side-row lip">
-                <div class="macro-side-head">
-                  <span class="macro-side-name">Lipides</span>
-                  <span class="macro-side-val"><span id="nutrition-fat">0</span>g <span class="macro-side-goal">/ <span id="goal-fat">80</span>g</span></span>
-                </div>
-                <div class="macro-side-bar"><div class="macro-side-fill lip" id="nutrition-fat-bar" style="width:0%;"></div></div>
-              </div>
+            <div class="nutr-hero-pct-badge" id="nutr-hero-pct">0%</div>
+          </div>
+          <div class="nutr-macro-chips">
+            <div class="nutr-macro-chip">
+              <div class="nutr-chip-val"><span id="nutrition-protein">0</span>g</div>
+              <div class="nutr-chip-label">Protéines</div>
+              <div class="nutr-chip-bar" style="background:var(--accent-blue);" id="nutrition-protein-bar"></div>
+            </div>
+            <div class="nutr-macro-chip">
+              <div class="nutr-chip-val"><span id="nutrition-carbs">0</span>g</div>
+              <div class="nutr-chip-label">Glucides</div>
+              <div class="nutr-chip-bar" style="background:var(--accent-warm);" id="nutrition-carbs-bar"></div>
+            </div>
+            <div class="nutr-macro-chip">
+              <div class="nutr-chip-val"><span id="nutrition-fat">0</span>g</div>
+              <div class="nutr-chip-label">Lipides</div>
+              <div class="nutr-chip-bar" style="background:var(--accent-mauve);" id="nutrition-fat-bar"></div>
             </div>
           </div>
-          <!-- Bottom 3 stats -->
-          <div class="nutr-summary-bottom">
-            <div class="nutr-summary-stat">
-              <div class="nutr-ss-val" id="nutrition-kcal-remaining">2400</div>
-              <div class="nutr-ss-label">Restantes</div>
-            </div>
-            <div class="nutr-summary-stat">
-              <div class="nutr-ss-val">0</div>
-              <div class="nutr-ss-label">Brûlées</div>
-            </div>
-            <div class="nutr-summary-stat">
-              <div class="nutr-ss-val" id="nutrition-net-goal">2400</div>
-              <div class="nutr-ss-label">Objectif net</div>
-            </div>
-          </div>
+        </div>
+
+        <!-- Hidden compat elements -->
+        <div style="display:none;">
+          <svg><circle id="nutrition-ring" stroke-dasharray="251" stroke-dashoffset="251"/></svg>
+          <span id="nutrition-kcal-remaining"></span>
+          <span id="nutrition-net-goal"></span>
+          <span id="goal-protein"></span><span id="goal-carbs"></span><span id="goal-fat"></span>
         </div>
 
         <!-- Micronutriments estimés — peuplé par nutrition.js -->
         <div id="nutrition-micros"></div>
 
-        <!-- Repas du jour -->
-        <div style="margin-top: 20px;">
-          <div class="section-header" style="margin-bottom:10px;">
-            <p class="home-section-label" style="margin:0;">Repas du jour</p>
-            <div class="flex gap-8">
-              <button class="section-link btn" id="btn-edit-goals" style="background:none;border:none;padding:0;font-size:0.75rem;">Objectifs</button>
-            </div>
-          </div>
+        <!-- Repas -->
+        <div style="margin-top:20px;">
+          <p class="home-section-label" style="margin-bottom:12px;">Repas</p>
           <div id="nutrition-meals-list"></div>
 
-          <!-- Recettes button -->
-          <div class="recipes-btn-v2" id="btn-open-recipes" role="button" tabindex="0">
-            <div class="recipes-left-v2">
-              <div class="recipes-icon-v2">📖</div>
-              <div>
-                <div class="recipes-title-v2">Mes recettes</div>
-                <div class="recipes-sub-v2">Ajouter depuis mes recettes</div>
-              </div>
+          <!-- Nouveau repas -->
+          <div class="nutr-new-meal-card">
+            <div>
+              <div class="nutr-new-meal-label">Ajouter</div>
+              <div class="nutr-new-meal-name">Nouveau repas</div>
             </div>
-            <span style="font-size:1.125rem;color:var(--cream-dim);">›</span>
+            <button class="nutr-new-meal-btn" id="btn-open-recipes" aria-label="Ajouter repas">+</button>
           </div>
         </div>
 

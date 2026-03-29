@@ -11,13 +11,14 @@ window.Nutrition = (() => {
   }
 
   const CATEGORIES = [
-    { name: 'Petit-déjeuner', emoji: '☕',  kcalGoal: 720, color: 'rgba(122,184,147,0.5)' },
-    { name: 'Déjeuner',       emoji: '🍽️', kcalGoal: 696, color: 'rgba(107,184,229,0.5)' },
-    { name: 'Dîner',          emoji: '🌙', kcalGoal: 696, color: 'rgba(200,149,108,0.5)' },
-    { name: 'Collation',      emoji: '🍎', kcalGoal: 288, color: 'rgba(201,168,76,0.5)'  },
+    { name: 'Petit-déjeuner', emoji: '🌅', kcalGoal: 720, color: 'var(--accent-warm)',  colorDim: 'rgba(245,166,35,0.15)',  borderColor: 'rgba(245,166,35,0.5)'  },
+    { name: 'Déjeuner',       emoji: '☀️', kcalGoal: 696, color: 'var(--accent-blue)',  colorDim: 'rgba(91,155,245,0.15)',  borderColor: 'rgba(91,155,245,0.5)'  },
+    { name: 'Dîner',          emoji: '🌙', kcalGoal: 696, color: 'var(--accent-mauve)', colorDim: 'rgba(192,132,252,0.15)', borderColor: 'rgba(192,132,252,0.5)' },
+    { name: 'Collation',      emoji: '🍎', kcalGoal: 288, color: 'var(--accent)',       colorDim: 'rgba(74,222,128,0.15)',  borderColor: 'rgba(74,222,128,0.5)'  },
   ];
-  let navBound  = false;
-  let activeCat = '';
+  let navBound    = false;
+  let activeCat   = '';
+  let expandedCats = new Set();
 
   /* ── Date ──────────────────────────────────── */
   function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -79,58 +80,80 @@ window.Nutrition = (() => {
   function renderMealsList(meals) {
     const list = document.getElementById('nutrition-meals-list');
     if (!list) return;
+
+    // Auto-expand categories with items
+    CATEGORIES.forEach(cat => {
+      const meal = meals.find(m => m.name === cat.name);
+      if (meal?.meal_items?.length) expandedCats.add(cat.name);
+    });
+
     list.innerHTML = CATEGORIES.map(cat => {
-      const meal  = meals.find(m => m.name === cat.name);
-      const items = meal?.meal_items || [];
-      const eaten = Math.round(catKcal(meal));
+      const meal     = meals.find(m => m.name === cat.name);
+      const items    = meal?.meal_items || [];
+      const eaten    = Math.round(catKcal(meal));
+      const tot      = items.reduce((t, it) => { t.p += it.protein||0; t.g += it.carbs||0; t.l += it.fat||0; return t; }, {p:0,g:0,l:0});
+      const isExpanded = expandedCats.has(cat.name);
+      const macroSub = items.length
+        ? `${eaten} kcal · P ${Math.round(tot.p)}g · G ${Math.round(tot.g)}g · L ${Math.round(tot.l)}g`
+        : 'Aucun aliment';
+
       const itemsHtml = items.map(it => `
         <div class="food-row-v2">
           <div class="food-left-v2">
-            <div class="food-name-v2">${it.food_name}</div>
-            ${it.quantity_g ? `<div class="food-qty-v2">${it.quantity_g}g</div>` : ''}
+            <div class="food-name-v2">${it.food_name}${it.quantity_g ? ` <span class="food-qty-v2">(${it.quantity_g}g)</span>` : ''}</div>
           </div>
           <div class="food-right-v2">
             <div class="food-macros-v2">
-              <div class="food-macro-v2"><span>${Math.round(it.protein)}g</span>P</div>
-              <div class="food-macro-v2"><span>${Math.round(it.carbs)}g</span>G</div>
-              <div class="food-macro-v2"><span>${Math.round(it.fat)}g</span>L</div>
+              <span class="food-macro-v2">P ${Math.round(it.protein)}g</span>
+              <span class="food-macro-v2">G ${Math.round(it.carbs)}g</span>
+              <span class="food-macro-v2">L ${Math.round(it.fat)}g</span>
             </div>
-            <div class="food-kcal-v2">${Math.round(it.calories)} kcal</div>
             <button class="btn-del-food-v2" data-del="${it.id}" aria-label="Supprimer">×</button>
           </div>
         </div>`).join('');
-      const emptyHtml = items.length === 0
-        ? `<div class="meal-empty-v2" data-cat="${cat.name}">＋ Ajouter un aliment ou une recette</div>`
-        : `<div class="meal-items-v2">${itemsHtml}</div>`;
+
       return `
-        <div class="meal-card-v2" style="border-left:3px solid ${cat.color};">
-          <div class="meal-header-v2">
+        <div class="meal-card-v2" data-meal-card="${cat.name}" style="border-left:3px solid ${cat.borderColor};">
+          <div class="meal-header-v2" data-toggle="${cat.name}" style="cursor:pointer;">
             <div class="meal-left-v2">
-              <div class="meal-emoji-box" style="background:${cat.color.replace('0.5)', '0.12)')}; border-color:${cat.color.replace('0.5)', '0.25)')};">${cat.emoji}</div>
+              <div class="meal-emoji-box" style="background:${cat.colorDim};border-color:${cat.borderColor};">${cat.emoji}</div>
               <div>
                 <div class="meal-name-v2">${cat.name}</div>
-                <div class="meal-count-v2">${items.length > 0 ? items.length + ' aliment' + (items.length > 1 ? 's' : '') : 'Aucun aliment'}</div>
+                <div class="meal-count-v2">${macroSub}</div>
               </div>
             </div>
-            <div class="meal-right-v2">
-              <div class="meal-total-v2" style="${eaten === 0 ? 'color:var(--cream-dim)' : ''}">${eaten > 0 ? eaten + ' kcal' : '— kcal'}</div>
-              <button class="btn-add-meal-v2" data-cat="${cat.name}" aria-label="Ajouter">＋</button>
-            </div>
+            <span class="meal-chevron-v2" style="transform:${isExpanded ? 'rotate(90deg)' : 'none'};">›</span>
           </div>
-          ${emptyHtml}
+          <div class="meal-expanded-v2" style="display:${isExpanded ? 'block' : 'none'};">
+            ${itemsHtml}
+            <button class="btn-add-food-inline" data-cat="${cat.name}">+ Ajouter un aliment</button>
+          </div>
         </div>`;
     }).join('');
 
-    list.querySelectorAll('.btn-add-meal-v2').forEach(btn =>
+    // Toggle expand/collapse
+    list.querySelectorAll('[data-toggle]').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const catName = hdr.dataset.toggle;
+        const card    = list.querySelector(`[data-meal-card="${catName}"]`);
+        const body    = card?.querySelector('.meal-expanded-v2');
+        const chev    = card?.querySelector('.meal-chevron-v2');
+        if (!body) return;
+        if (expandedCats.has(catName)) {
+          expandedCats.delete(catName);
+          body.style.display = 'none';
+          if (chev) chev.style.transform = 'none';
+        } else {
+          expandedCats.add(catName);
+          body.style.display = 'block';
+          if (chev) chev.style.transform = 'rotate(90deg)';
+        }
+      });
+    });
+
+    list.querySelectorAll('.btn-add-food-inline').forEach(btn =>
       btn.addEventListener('click', e => { e.stopPropagation(); openPicker(btn.dataset.cat); })
     );
-    list.querySelectorAll('.meal-empty-v2[data-cat]').forEach(el =>
-      el.addEventListener('click', e => { e.stopPropagation(); openPicker(el.dataset.cat); })
-    );
-    list.querySelectorAll('.meal-header-v2').forEach(hdr => {
-      const catName = hdr.querySelector('.btn-add-meal-v2')?.dataset?.cat;
-      if (catName) hdr.addEventListener('click', e => { if (!e.target.closest('.btn-add-meal-v2')) openPicker(catName); });
-    });
     list.querySelectorAll('[data-del]').forEach(b =>
       b.addEventListener('click', async e => {
         e.stopPropagation();
