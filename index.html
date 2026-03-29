@@ -157,160 +157,120 @@
     <section id="tab-home" class="tab-content active" role="tabpanel" aria-label="Accueil">
       <div class="page-container">
 
-        <!-- Header -->
-        <header class="page-header">
-          <div class="home-header-row">
-            <div>
-              <p class="page-header-eyebrow" id="home-date"></p>
-              <p class="home-brand-mark">ÉLEV</p>
-            </div>
-            <div class="home-header-actions">
-              <button id="btn-theme-toggle" aria-label="Basculer le thème"
-                      class="home-header-btn home-header-btn-icon">
-                <span id="theme-icon">☾</span>
-              </button>
-              <button id="btn-open-profile"
-                      class="home-header-btn home-header-btn-icon"
-                      aria-label="Mon profil">👤</button>
-              <button id="btn-signout"
-                      class="home-header-btn home-header-btn-pill">
-                Déco
-              </button>
-            </div>
-          </div>
-          <h1 class="page-header-title home-greeting" id="home-greeting">Bonjour</h1>
-          <p class="page-header-sub" id="home-subtitle">Prêt pour aujourd'hui ?</p>
-          <!-- Streak badge -->
-          <div class="streak-badge" id="home-streak-badge" style="display:none;">
-            <span>🔥</span><span id="home-streak-count">0 jour</span>
-          </div>
-        </header>
-
-        <!-- Hero card — nutrition du jour -->
-        <div class="ring-card" id="home-ring-card" onclick="AppState && AppState.switchTab('nutrition')" style="cursor:pointer;">
-          <div class="ring-card-top">
-            <div>
-              <div class="ring-card-label">Calories du jour</div>
-              <div class="ring-card-kcal">
-                <span id="home-kcal">0</span><span class="ring-card-kcal-goal">/ <span id="home-goal-kcal">2400</span> kcal</span>
-              </div>
-            </div>
-            <div class="ring-card-pct" id="home-kcal-pct">0%</div>
-          </div>
-          <div class="ring-macro-rings">
-            <div class="ring-macro-ring-item">
-              <svg viewBox="0 0 44 44" width="52" height="52" aria-hidden="true">
-                <circle cx="22" cy="22" r="16" class="hmr-track"/>
-                <circle cx="22" cy="22" r="16" class="hmr-fill gluc" id="home-carbs-ring"
-                  stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 22 22)"/>
-              </svg>
-              <div class="hmr-val"><span id="home-carbs">0</span>g</div>
-              <div class="hmr-label">Glucides</div>
-            </div>
-            <div class="ring-macro-ring-item">
-              <svg viewBox="0 0 44 44" width="52" height="52" aria-hidden="true">
-                <circle cx="22" cy="22" r="16" class="hmr-track"/>
-                <circle cx="22" cy="22" r="16" class="hmr-fill prot" id="home-protein-ring"
-                  stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 22 22)"/>
-              </svg>
-              <div class="hmr-val"><span id="home-protein">0</span>g</div>
-              <div class="hmr-label">Protéines</div>
-            </div>
-            <div class="ring-macro-ring-item">
-              <svg viewBox="0 0 44 44" width="52" height="52" aria-hidden="true">
-                <circle cx="22" cy="22" r="16" class="hmr-track"/>
-                <circle cx="22" cy="22" r="16" class="hmr-fill lip" id="home-fat-ring"
-                  stroke-dasharray="100.5" stroke-dashoffset="100.5" transform="rotate(-90 22 22)"/>
-              </svg>
-              <div class="hmr-val"><span id="home-fat">0</span>g</div>
-              <div class="hmr-label">Lipides</div>
-            </div>
-          </div>
-          <!-- Hidden bars kept for JS compat -->
-          <div style="display:none;">
-            <div id="home-carbs-bar"></div>
-            <div id="home-protein-bar"></div>
-            <div id="home-fat-bar"></div>
+        <!-- Top utility bar -->
+        <div class="home-top-bar">
+          <p class="home-top-date" id="home-date"></p>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button id="btn-theme-toggle" class="btn btn-icon" aria-label="Basculer le thème" style="font-size:0.875rem;"><span id="theme-icon">☾</span></button>
+            <button id="btn-open-profile" class="btn btn-icon" aria-label="Mon profil" style="font-size:0.875rem;">👤</button>
+            <button id="btn-signout" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:4px 10px;">Déco</button>
           </div>
         </div>
 
-        <!-- Séance du jour -->
-        <p class="home-section-label">Séance du jour</p>
-        <div id="home-workout-card">
-          <!-- Peuplé par home.js -->
-          <div class="seance-card">
-            <div class="seance-top">
-              <div>
-                <div class="seance-name">Chargement…</div>
-                <div class="seance-meta">—</div>
+        <!-- Home header -->
+        <div class="home-v2-header">
+          <div>
+            <div class="home-v2-greeting" id="home-greeting">Bonjour,</div>
+            <div class="home-v2-name" id="home-username">Louis</div>
+            <p class="home-v2-sub" id="home-subtitle" style="transition:opacity 0.3s;"></p>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <div class="home-premium-badge">✦ Premium</div>
+            <div class="home-streak-badge" id="home-streak-badge" style="display:none;">🔥 <span id="home-streak-count">0 jour</span></div>
+          </div>
+        </div>
+
+        <!-- Calories donut card -->
+        <div class="home-cal-card" onclick="AppState && AppState.switchTab('nutrition')" style="cursor:pointer;">
+          <div class="home-ring-wrap">
+            <svg width="90" height="90" viewBox="0 0 90 90" style="transform:rotate(-90deg);" aria-hidden="true">
+              <circle cx="45" cy="45" r="35" fill="none" stroke="var(--bg-surface)" stroke-width="8"/>
+              <circle cx="45" cy="45" r="35" fill="none" stroke="var(--accent-primary)" stroke-width="8"
+                stroke-linecap="round" stroke-dasharray="220" stroke-dashoffset="220"
+                id="home-cal-ring-fill"
+                style="filter:drop-shadow(0 0 6px rgba(200,98,46,0.5));transition:stroke-dashoffset 0.8s cubic-bezier(0.34,1.2,0.64,1);"/>
+            </svg>
+            <div class="home-ring-center">
+              <div class="home-ring-val" id="home-kcal">0</div>
+              <div class="home-ring-unit">kcal</div>
+            </div>
+          </div>
+          <div class="home-cal-info">
+            <div class="home-cal-title">Calories aujourd'hui</div>
+            <div class="home-cal-numbers">
+              <div class="home-cal-stat">
+                <div class="home-cal-stat-val" style="color:var(--accent-primary);" id="home-goal-kcal">2400</div>
+                <div class="home-cal-stat-label">Objectif</div>
+              </div>
+              <div class="home-cal-stat">
+                <div class="home-cal-stat-val" style="color:var(--accent-warm);" id="home-kcal-remaining-num">2400</div>
+                <div class="home-cal-stat-label">Restant</div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Prochaine séance -->
+        <!-- Macros bars card -->
+        <div class="home-macros-card">
+          <div class="home-macros-title">Macronutriments</div>
+          <div class="home-macro-row">
+            <div class="home-macro-header">
+              <span class="home-macro-name" style="color:var(--accent-blue);">Protéines</span>
+              <span class="home-macro-val"><span id="home-protein">0</span>g</span>
+            </div>
+            <div class="home-macro-bar-bg"><div class="home-macro-bar-fill" id="home-macro-prot-bar" style="background:var(--accent-blue);width:0%;"></div></div>
+          </div>
+          <div class="home-macro-row">
+            <div class="home-macro-header">
+              <span class="home-macro-name" style="color:var(--accent-warm);">Glucides</span>
+              <span class="home-macro-val"><span id="home-carbs">0</span>g</span>
+            </div>
+            <div class="home-macro-bar-bg"><div class="home-macro-bar-fill" id="home-macro-gluc-bar" style="background:var(--accent-warm);width:0%;"></div></div>
+          </div>
+          <div class="home-macro-row">
+            <div class="home-macro-header">
+              <span class="home-macro-name" style="color:var(--accent-mauve);">Lipides</span>
+              <span class="home-macro-val"><span id="home-fat">0</span>g</span>
+            </div>
+            <div class="home-macro-bar-bg"><div class="home-macro-bar-fill" id="home-macro-lip-bar" style="background:var(--accent-mauve);width:0%;"></div></div>
+          </div>
+        </div>
+
+        <!-- Séance du jour (peuplé par home.js) -->
+        <div id="home-workout-card"></div>
+
+        <!-- Prochaine séance (JS compat) -->
         <section id="home-next-session-section" style="display:none;" aria-label="Prochaine séance">
-          <p class="home-section-label">Prochaine séance</p>
-          <div id="home-next-session-card" class="seance-card" style="cursor:pointer;" onclick="AppState && AppState.switchTab('workouts')">
-            <!-- Peuplé par home.js -->
-          </div>
-          <button class="btn-start-pill btn-full" style="margin-top:10px;border-radius:var(--radius);"
-                  onclick="AppState && AppState.switchTab('workouts')">
-            Démarrer →
-          </button>
+          <div id="home-next-session-card" class="seance-card" style="cursor:pointer;" onclick="AppState && AppState.switchTab('workouts')"></div>
         </section>
 
-        <!-- Cette semaine -->
-        <p class="home-section-label">Cette semaine</p>
-        <div class="stats-row-3">
-          <div class="stat-card-mini" onclick="AppState && AppState.switchTab('history')" role="button" tabindex="0">
-            <div class="stat-card-emoji">💪</div>
-            <div class="stat-card-val" id="home-week-count">—</div>
-            <div class="stat-card-label">Séances</div>
+        <!-- Activity mini cards -->
+        <div class="home-activity-row">
+          <div class="home-activity-mini" onclick="AppState && AppState.switchTab('history')" role="button" tabindex="0">
+            <div class="home-activity-icon">💪</div>
+            <div class="home-activity-val" id="home-week-count">—</div>
+            <div class="home-activity-label">Séances / sem</div>
           </div>
-          <div class="stat-card-mini" onclick="AppState && AppState.switchTab('history')" role="button" tabindex="0">
-            <div class="stat-card-emoji">⚖️</div>
-            <div class="stat-card-val" id="home-weight-value">—</div>
-            <div class="stat-card-label">Poids</div>
+          <div class="home-activity-mini" role="button" tabindex="0">
+            <div class="home-activity-icon">⚖️</div>
+            <div class="home-activity-val" id="home-weight-value">—</div>
+            <div class="home-activity-label">Poids</div>
           </div>
-          <div class="stat-card-mini" onclick="AppState && AppState.switchTab('history')" role="button" tabindex="0">
-            <div class="stat-card-emoji">📈</div>
-            <div class="stat-card-val" id="home-month-count">—</div>
-            <div class="stat-card-label">Ce mois</div>
-          </div>
-        </div>
-
-        <!-- Poids delta (hidden — valeurs within stat cards now) -->
-        <div id="home-weight-section" style="display:none;">
-          <span id="home-weight-delta-day"></span>
-          <span id="home-weight-delta-month"></span>
-        </div>
-
-        <!-- Actions rapides -->
-        <p class="home-section-label">Actions rapides</p>
-        <div class="actions-row-2">
-          <div class="action-card" onclick="AppState && AppState.switchTab('nutrition')" role="button" tabindex="0">
-            <div class="action-emoji">🥗</div>
-            <div>
-              <div class="action-title">Ajouter repas</div>
-              <div class="action-sub" id="home-kcal-remaining">—</div>
-            </div>
-          </div>
-          <div class="action-card" onclick="AppState && AppState.switchTab('history')" role="button" tabindex="0">
-            <div class="action-emoji">📊</div>
-            <div>
-              <div class="action-title">Historique</div>
-              <div class="action-sub">Voir la progression</div>
-            </div>
+          <div class="home-activity-mini" onclick="AppState && AppState.switchTab('history')" role="button" tabindex="0">
+            <div class="home-activity-icon">📈</div>
+            <div class="home-activity-val" id="home-month-count">—</div>
+            <div class="home-activity-label">Ce mois</div>
           </div>
         </div>
 
-        <!-- Dernier PR (peuplé par home.js) -->
-        <div id="home-pr-card" style="display:none;padding-bottom:8px;"></div>
-
-        <!-- Hidden placeholder for goal kcal (used by home.js) -->
-        <span data-goal-kcal style="display:none;"></span>
-        <div id="home-kcal-bar" style="display:none;"></div>
+        <!-- Hidden compat elements -->
+        <div style="display:none;">
+          <div id="home-carbs-ring"></div><div id="home-protein-ring"></div><div id="home-fat-ring"></div>
+          <div id="home-carbs-bar"></div><div id="home-protein-bar"></div><div id="home-fat-bar"></div>
+          <div id="home-kcal-pct"></div><div id="home-kcal-remaining"></div>
+          <div id="home-weight-section"></div><div id="home-weight-delta-day"></div><div id="home-weight-delta-month"></div>
+          <span data-goal-kcal></span><div id="home-kcal-bar"></div><div id="home-pr-card"></div>
+        </div>
 
       </div>
     </section>

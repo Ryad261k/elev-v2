@@ -113,16 +113,35 @@ window.HomeTab = (() => {
     set('home-carbs',   tot.carbs);
     set('home-fat',     tot.fat);
 
-    // Goal kcal label + % badge
+    // Goal kcal
     const goalEl = document.getElementById('home-goal-kcal');
     if (goalEl) goalEl.textContent = goals.kcal;
-    const pctEl = document.getElementById('home-kcal-pct');
-    if (pctEl) {
-      const pct = Math.min(Math.round(tot.kcal / (goals.kcal || 1) * 100), 100);
-      pctEl.textContent = pct + '%';
+
+    // Remaining kcal
+    const rem = Math.max(0, goals.kcal - Math.round(tot.kcal));
+    const remNum = document.getElementById('home-kcal-remaining-num');
+    if (remNum) remNum.textContent = rem.toLocaleString('fr-FR');
+    const remEl = document.getElementById('home-kcal-remaining');
+    if (remEl) remEl.textContent = rem.toLocaleString('fr-FR') + ' kcal restantes';
+
+    // Calorie donut ring (circ = 2π×35 ≈ 220)
+    const RING_CIRC = 220;
+    const ringEl = document.getElementById('home-cal-ring-fill');
+    if (ringEl) {
+      const pct = Math.min(tot.kcal / (goals.kcal || 1), 1);
+      ringEl.setAttribute('stroke-dashoffset', (RING_CIRC * (1 - pct)).toFixed(1));
     }
 
-    // Macro mini-rings (CIRC = 2π×16 ≈ 100.5)
+    // Macro bars (width %)
+    const macroBar = (id, v, g) => {
+      const el = document.getElementById(id);
+      if (el) el.style.width = Math.min(Math.round(v / (g || 1) * 100), 100) + '%';
+    };
+    macroBar('home-macro-prot-bar', tot.protein, goals.protein);
+    macroBar('home-macro-gluc-bar', tot.carbs,   goals.carbs);
+    macroBar('home-macro-lip-bar',  tot.fat,     goals.fat);
+
+    // Legacy mini-rings compat
     const CIRC = 100.5;
     const macroRing = (id, v, g) => {
       const el = document.getElementById(id);
@@ -133,12 +152,8 @@ window.HomeTab = (() => {
     macroRing('home-protein-ring', tot.protein, goals.protein);
     macroRing('home-fat-ring',     tot.fat,     goals.fat);
 
-    // Remaining kcal in action card
-    const remEl = document.getElementById('home-kcal-remaining');
-    if (remEl) {
-      const rem = Math.max(0, goals.kcal - Math.round(tot.kcal));
-      remEl.textContent = rem.toLocaleString('fr-FR') + ' kcal restantes';
-    }
+    const pctEl = document.getElementById('home-kcal-pct');
+    if (pctEl) pctEl.textContent = Math.min(Math.round(tot.kcal / (goals.kcal || 1) * 100), 100) + '%';
   }
 
   function loadGoals() {
@@ -213,14 +228,13 @@ window.HomeTab = (() => {
     if (!card) return;
     if (!session) {
       card.innerHTML = `
-        <div class="seance-card" style="cursor:pointer;" onclick="HomeTab.showRoutinePickerSheet()">
-          <div class="seance-top">
-            <div>
-              <div class="seance-name" style="color:var(--cream-dim);font-style:normal;font-family:var(--font-sans);font-size:0.875rem;">Aucune séance aujourd'hui</div>
-              <div class="seance-meta">Lance une routine pour commencer</div>
-            </div>
-            <button class="btn-start-pill" onclick="event.stopPropagation();HomeTab.showRoutinePickerSheet()">Démarrer</button>
+        <div class="home-workout-v2" onclick="HomeTab.showRoutinePickerSheet()" style="cursor:pointer;">
+          <div class="home-workout-v2-left">
+            <div class="home-workout-tag">Prochain entraînement</div>
+            <div class="home-workout-name">Aucune séance</div>
+            <div class="home-workout-meta">Lance une routine pour commencer</div>
           </div>
+          <button class="home-workout-arrow" onclick="event.stopPropagation();HomeTab.showRoutinePickerSheet()">→</button>
         </div>`;
       return;
     }
@@ -234,17 +248,13 @@ window.HomeTab = (() => {
       : Math.round((Date.now() - start) / 60000);
     const isActive = !session.ended_at;
     card.innerHTML = `
-      <div class="seance-card" onclick="AppState && AppState.switchTab('workouts')" style="cursor:pointer;">
-        <div class="seance-top">
-          <div>
-            <div class="seance-name">${name}</div>
-            <div class="seance-meta">${start.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} · ${isActive ? '🔄 En cours' : '✓ Terminé'}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--cream);">${dur} min</div>
-            <div class="seance-meta">${sets} sets · ${vol >= 1000 ? (vol/1000).toFixed(1)+'t' : vol+' kg'}</div>
-          </div>
+      <div class="home-workout-v2" onclick="AppState && AppState.switchTab('workouts')" style="cursor:pointer;">
+        <div class="home-workout-v2-left">
+          <div class="home-workout-tag">${isActive ? '🔄 En cours' : '✓ Terminée'}</div>
+          <div class="home-workout-name">${name}</div>
+          <div class="home-workout-meta">${start.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} · ${sets} sets · ${vol >= 1000 ? (vol/1000).toFixed(1)+'t' : vol+' kg'}</div>
         </div>
+        <div class="home-workout-arrow-pill">${dur} min</div>
       </div>`;
   }
 
@@ -271,12 +281,11 @@ window.HomeTab = (() => {
     const workoutCard = document.getElementById('home-workout-card');
     if (workoutCard) {
       workoutCard.innerHTML = `
-        <div class="seance-card">
-          <div class="seance-top">
-            <div style="flex:1;">
-              <div class="skeleton skeleton-line" style="width:55%;margin-bottom:8px;"></div>
-              <div class="skeleton skeleton-line-sm" style="width:40%;"></div>
-            </div>
+        <div class="home-workout-v2" style="opacity:0.6;">
+          <div class="home-workout-v2-left">
+            <div class="skeleton skeleton-line" style="width:55%;margin-bottom:8px;height:10px;border-radius:6px;"></div>
+            <div class="skeleton skeleton-line" style="width:40%;height:20px;border-radius:6px;margin-bottom:6px;"></div>
+            <div class="skeleton skeleton-line-sm" style="width:70%;height:10px;border-radius:6px;"></div>
           </div>
         </div>`;
     }
