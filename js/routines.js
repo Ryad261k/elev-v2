@@ -7,113 +7,121 @@ window.Routines = (() => {
 
   const RD = () => window.RoutinesData;
 
+  // Colored circles per routine (cycles)
+  const ICON_COLORS = ['#E8547A','#5B9BF5','#F5A623','#C084FC','#4ADE80','#C8622E','#34D399','#F87171'];
+  const ICON_SHAPES = ['▲','●','●','●','◆','●','●','▲'];
+
+  function formatLastDone(dateStr) {
+    if (!dateStr) return 'Jamais effectuée';
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
+    if (diff === 0) return "Aujourd'hui";
+    if (diff === 1) return 'Hier';
+    return `Il y a ${diff}j`;
+  }
+
+  const FILTERS = [
+    { label: 'Tous',          test: () => true },
+    { label: 'Push / Pull',   test: r => /push|pull/i.test(r.name) },
+    { label: 'Upper / Lower', test: r => /upper|lower/i.test(r.name) },
+    { label: 'Full Body',     test: r => /full/i.test(r.name) },
+  ];
+  let activeFilter = 0;
+
   /* ---- Vue liste ---- */
   async function renderList() {
     const cnt = document.getElementById('routines-content');
-    const fab = document.getElementById('fab-routine');
     cnt.innerHTML = '<div class="workout-spinner"><div class="spinner spinner-lg"></div></div>';
-    if (fab) fab.style.display = 'flex';
 
     try {
       const routines = await RD().fetchRoutines();
 
-      if (!routines.length) {
-        cnt.innerHTML = `
-          <div style="display:flex;align-items:flex-end;justify-content:space-between;padding-top:52px;margin-bottom:20px;">
-            <div>
-              <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Mes programmes</p>
-              <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Séances</h1>
-            </div>
-            <button class="btn-start-pill" id="btn-new-routine-empty">＋ Nouvelle</button>
-          </div>
+      // Fetch last session per routine
+      let lastSessions = {};
+      try {
+        const { data: sessions } = await DB.from('sessions')
+          .select('routine_id, started_at')
+          .eq('user_id', DB.userId())
+          .not('ended_at', 'is', null)
+          .order('started_at', { ascending: false });
+        (sessions || []).forEach(s => {
+          if (s.routine_id && !lastSessions[s.routine_id]) lastSessions[s.routine_id] = s.started_at;
+        });
+      } catch {}
+
+      const renderCards = (filter) => {
+        const visible = routines.filter(filter.test);
+        if (!visible.length && !routines.length) return `
           <div class="empty-state" style="margin-top:48px;">
             <span class="empty-state-icon">📋</span>
-            <p class="empty-state-title">Aucune séance</p>
-            <p class="empty-state-text">Crée ta première séance d'entraînement</p>
+            <p class="empty-state-title">Aucune routine</p>
+            <p class="empty-state-text">Crée ta première routine d'entraînement</p>
           </div>`;
-        document.getElementById('btn-new-routine-empty')?.addEventListener('click', () => window.RoutinesEditor.openEditor(null));
-        return;
-      }
-
-      const ROUTINE_ICONS       = ['🔥','💪','🦵','🏋️','🎯','⚡','🌊','🏃'];
-      const METHOD_BADGE_LABELS = { amrap:'🔁 AMRAP', dropset:'📉 DROP', superset:'⚡ SUPER', restpause:'⏱ RP', tempo:'🎵 TEMPO', htfr:'🏋 HTFR', giantset:'🔥 GIANT' };
-
-      const headerHtml = `
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;padding-top:52px;margin-bottom:20px;">
-          <div>
-            <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">Mes programmes</p>
-            <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Séances</h1>
-          </div>
-          <button class="btn-start-pill" id="btn-new-routine-header">＋ Nouvelle</button>
-        </div>
-        <div class="days-filter">
-          <div class="day-chip active">Tous</div>
-          <div class="day-chip">Lundi</div><div class="day-chip">Mardi</div><div class="day-chip">Mercredi</div>
-          <div class="day-chip">Jeudi</div><div class="day-chip">Vendredi</div><div class="day-chip">Weekend</div>
-        </div>
-        <p class="home-section-label" style="margin-top:24px;">Programmes actifs</p>`;
-
-      const routineCards = routines.map((r, idx) => {
-        const methods       = RD().loadMethods(r.id);
-        const meta          = RD().loadMeta(r.id);
-        const activeMethods = Object.values(methods).filter(m => m !== 'normal');
-        const uniqueMethods = [...new Set(activeMethods)];
-        const badgesHTML    = uniqueMethods.map(m => `<span class="method-badge method-${m}">${METHOD_BADGE_LABELS[m] || m}</span>`).join('');
-        const exCount       = r.routine_exercises.length;
-        const icon          = ROUTINE_ICONS[idx % ROUTINE_ICONS.length];
-        const isFeatured    = idx === 0;
-
-        return `
-          <div class="routine-card-v2${isFeatured ? ' featured' : ''}" data-rid="${r.id}" style="animation-delay:${0.1 + idx * 0.07}s">
-            <div class="routine-top">
-              <div class="routine-icon">${icon}</div>
-              <div class="routine-info">
-                <div class="routine-name-v2">${r.name}</div>
-                <div class="routine-meta-row">
-                  <span>${exCount} exercice${exCount !== 1 ? 's' : ''}</span>
-                  <div class="meta-dot"></div><span>${meta.daysPerWeek} j/sem</span>
-                  <div class="meta-dot"></div><span>${meta.objective}</span>
-                  ${badgesHTML ? `<div class="meta-dot"></div><span style="display:flex;gap:4px;">${badgesHTML}</span>` : ''}
-                </div>
-              </div>
-              <div class="routine-actions">
-                <button class="btn btn-icon" data-edit="${r.id}"  aria-label="Modifier" style="width:30px;height:30px;font-size:0.8125rem;">✏️</button>
-                <button class="btn btn-icon" data-more="${r.id}"  aria-label="Plus"     style="width:30px;height:30px;font-size:0.8125rem;">⋯</button>
-              </div>
-            </div>
-            <div class="routine-bottom">
-              <div class="routine-last-done">📅 <span>—</span></div>
-              <button class="btn-start-pill" data-start="${r.id}" style="padding:7px 14px;font-size:0.75rem;">▶ Démarrer</button>
-            </div>
+        if (!visible.length) return `
+          <div class="empty-state" style="margin-top:32px;">
+            <p class="empty-state-text" style="font-size:0.875rem;">Aucune routine dans cette catégorie</p>
           </div>`;
-      }).join('');
+        return visible.map((r, idx) => {
+          const realIdx  = routines.indexOf(r);
+          const exCount  = r.routine_exercises.length;
+          const duration = Math.round(exCount * 9 / 5) * 5 || 0;
+          const muscles  = [...new Set((r.routine_exercises || [])
+            .map(re => re.exercise?.muscle_group).filter(Boolean))].slice(0, 3);
+          const muscleChips = muscles.map(m =>
+            `<span class="routine-muscle-chip">${m.toUpperCase()}</span>`).join('');
+          const lastDone = formatLastDone(lastSessions[r.id]);
+          const color    = ICON_COLORS[realIdx % ICON_COLORS.length];
+          const shape    = ICON_SHAPES[realIdx % ICON_SHAPES.length];
+          return `
+            <div class="routine-card-v3" data-rid="${r.id}">
+              <div class="routine-v3-icon" style="background:${color}22;color:${color};">${shape}</div>
+              <div class="routine-v3-body">
+                <div class="routine-v3-name">${r.name}</div>
+                ${muscleChips ? `<div class="routine-v3-chips">${muscleChips}</div>` : ''}
+                <div class="routine-v3-meta">${exCount} exercice${exCount !== 1 ? 's' : ''} · ~${duration} min · ${lastDone}</div>
+              </div>
+              <span class="routine-v3-arrow">›</span>
+            </div>`;
+        }).join('');
+      };
 
-      const ctaHtml = `
-        <div class="new-routine-cta" id="btn-new-routine-cta">
-          <div class="new-routine-icon">＋</div>
-          <div style="font-size:0.875rem;font-weight:600;color:var(--cream);">Créer une séance</div>
-          <div style="font-size:0.75rem;color:var(--cream-dim);">Ajoute un nouveau programme</div>
-        </div>`;
+      const filtersHtml = FILTERS.map((f, i) =>
+        `<button class="routine-filter-chip${i === activeFilter ? ' active' : ''}" data-fi="${i}">${f.label}</button>`
+      ).join('');
 
-      cnt.innerHTML = headerHtml + routineCards + ctaHtml;
+      cnt.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:52px;margin-bottom:20px;">
+          <h1 style="font-family:var(--font-serif);font-style:italic;font-size:2rem;color:var(--cream);line-height:1.1;">Routines</h1>
+          <button class="routine-add-btn" id="btn-new-routine-header" aria-label="Créer une routine">+</button>
+        </div>
+        <div class="routine-filters-row">${filtersHtml}</div>
+        <div id="routine-cards-container" style="margin-top:16px;">${renderCards(FILTERS[activeFilter])}</div>`;
 
-      cnt.addEventListener('click', async e => {
-        const editBtn  = e.target.closest('[data-edit]');
-        const moreBtn  = e.target.closest('[data-more]');
-        const startBtn = e.target.closest('[data-start]');
-        const card     = e.target.closest('.routine-card-v2');
-        if (editBtn)  { e.stopPropagation(); window.RoutinesEditor.openEditor(editBtn.dataset.edit); return; }
-        if (moreBtn)  { e.stopPropagation(); showRoutineMoreMenu(moreBtn.dataset.more); return; }
-        if (startBtn) { e.stopPropagation(); startRoutine(startBtn.dataset.start); return; }
-        if (card && !e.target.closest('button')) { window.RoutinesEditor.openEditor(card.dataset.rid); }
+      cnt.querySelectorAll('.routine-filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          activeFilter = parseInt(chip.dataset.fi);
+          cnt.querySelectorAll('.routine-filter-chip').forEach((c, i) =>
+            c.classList.toggle('active', i === activeFilter));
+          document.getElementById('routine-cards-container').innerHTML = renderCards(FILTERS[activeFilter]);
+          bindCardEvents();
+        });
       });
 
+      bindCardEvents();
       document.getElementById('btn-new-routine-header')?.addEventListener('click', () => window.RoutinesEditor.openEditor(null));
-      document.getElementById('btn-new-routine-cta')?.addEventListener('click',    () => window.RoutinesEditor.openEditor(null));
     } catch (err) {
       console.error('[Routines] renderList:', err);
       cnt.innerHTML = '<p class="text-dim" style="padding:24px;">Erreur de chargement</p>';
     }
+  }
+
+  function bindCardEvents() {
+    const cnt = document.getElementById('routines-content');
+    cnt.querySelectorAll('.routine-card-v3').forEach(card => {
+      card.addEventListener('click', e => {
+        if (!e.target.closest('button')) window.RoutinesEditor.openEditor(card.dataset.rid);
+      });
+      card.addEventListener('contextmenu', e => { e.preventDefault(); showRoutineMoreMenu(card.dataset.rid); });
+    });
   }
 
   /* ---- Actions liste ---- */

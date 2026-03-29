@@ -98,7 +98,7 @@ window.RoutinesData = (() => {
   /* ---- DB ---- */
   async function fetchRoutines() {
     const { data, error } = await DB.from('routines')
-      .select('id, name, routine_exercises(id)')
+      .select('id, name, routine_exercises(id, exercise:exercises(muscle_group))')
       .eq('user_id', DB.userId())
       .order('created_at', { ascending: false });
     if (error) throw error;
