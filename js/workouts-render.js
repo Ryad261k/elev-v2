@@ -15,33 +15,29 @@ window.WorkoutsRender = (() => {
     const s       = S();
     const cnt     = document.getElementById('workouts-content');
     const started = new Date(s.session.started_at);
-    const totalEx = exercises.length;
 
     cnt.innerHTML = `
-      <div style="padding:52px 20px 16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="wo-session-top">
+        <div class="wo-session-header">
+          <button class="wo-back-btn" id="btn-other-sport" aria-label="Autre sport">−</button>
           <div>
-            <p style="font-size:0.6875rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">En cours</p>
-            <h2 style="font-family:var(--font-serif);font-style:italic;font-size:1.5rem;color:var(--cream);">${s.routine.name}</h2>
-          </div>
-          <div style="background:rgba(200,98,46,0.12);border:1px solid rgba(200,98,46,0.22);border-radius:100px;padding:8px 14px;text-align:center;flex-shrink:0;">
-            <div style="font-family:var(--font-serif);font-style:italic;font-size:1.25rem;color:var(--accent-primary);line-height:1;" id="session-elapsed-val">0:00</div>
-            <div style="font-size:0.5625rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-primary);opacity:0.7;margin-top:2px;">Durée</div>
+            <p class="wo-routine-label">${s.routine.name.toUpperCase()}</p>
+            <h2 class="wo-session-title">En cours...</h2>
           </div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="font-size:0.6875rem;color:var(--cream-dim);" id="session-progress-label">${totalEx} exercice${totalEx > 1 ? 's' : ''}</span>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-ghost btn-sm" id="btn-other-sport"  style="font-size:0.75rem;padding:5px 10px;">Autre sport</button>
-            <button class="btn btn-danger btn-sm" id="btn-finish"       style="font-size:0.75rem;padding:5px 10px;">Terminer</button>
+        <div class="wo-timer-card">
+          <div>
+            <div class="wo-timer-val" id="session-elapsed-val">0:00</div>
+            <div class="wo-timer-sub">Durée séance</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="wo-pause-btn" id="btn-pause-session">⏸ Pause</button>
+            <button class="wo-finish-btn" id="btn-finish">Fin</button>
           </div>
         </div>
-        <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:100px;overflow:hidden;">
-          <div id="session-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent-primary),rgba(200,98,46,0.5));border-radius:100px;transition:width 0.5s ease;"></div>
-        </div>
+        <span style="display:none;" id="session-elapsed">0 min</span>
       </div>
-      <span style="display:none;" id="session-elapsed">0 min</span>
-      <div id="exercises-list" style="padding:0 20px 100px;"></div>`;
+      <div id="exercises-list" style="padding:12px 16px 100px;"></div>`;
 
     const list = document.getElementById('exercises-list');
     for (let i = 0; i < exercises.length; i++) {
@@ -74,15 +70,31 @@ window.WorkoutsRender = (() => {
 
     // Chronomètre
     clearInterval(s.clockTimer);
+    s._paused = false; s._pauseOffset = 0;
     s.clockTimer = setInterval(() => {
+      if (s._paused) return;
       const el    = document.getElementById('session-elapsed');
       const valEl = document.getElementById('session-elapsed-val');
       if (!el && !valEl) { clearInterval(s.clockTimer); return; }
-      const mins = Math.floor((Date.now() - started) / 60000);
-      const secs = Math.floor(((Date.now() - started) % 60000) / 1000);
+      const elapsed = Date.now() - started - (s._pauseOffset || 0);
+      const mins = Math.floor(elapsed / 60000);
+      const secs = Math.floor((elapsed % 60000) / 1000);
       if (el)    el.textContent    = `${mins} min`;
       if (valEl) valEl.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
     }, 1000);
+
+    document.getElementById('btn-pause-session')?.addEventListener('click', () => {
+      const btn = document.getElementById('btn-pause-session');
+      if (!btn) return;
+      if (s._paused) {
+        s._pauseOffset = (s._pauseOffset || 0) + (Date.now() - s._pauseStart);
+        s._paused = false;
+        btn.innerHTML = '⏸ Pause';
+      } else {
+        s._paused = true; s._pauseStart = Date.now();
+        btn.innerHTML = '▶ Reprendre';
+      }
+    });
 
     list.addEventListener('click', e => {
       const addBtn  = e.target.closest('[data-add-set]');
@@ -104,29 +116,26 @@ window.WorkoutsRender = (() => {
 
   /* ---- Carte d'exercice ---- */
   function buildExerciseCard(re, prevSets, exIdx) {
-    const s         = S();
-    const ex        = re.exercise;
-    const wu        = M().calcWarmup(re.weight);
-    const method    = s.methods[ex.id] || 'normal';
-    const cfg       = window.Workouts.getMethodConfig(method);
-    const ML        = { amrap:'🔁 AMRAP', dropset:'📉 DROP SET', superset:'⚡ SUPERSET', restpause:'⏱ REST-PAUSE', tempo:'🎵 TEMPO', htfr:'🏋 HTFR', giantset:'🔥 GIANT SET' };
+    const s      = S();
+    const ex     = re.exercise;
+    const wu     = M().calcWarmup(re.weight);
+    const method = s.methods[ex.id] || 'normal';
+    const cfg    = window.Workouts.getMethodConfig(method);
 
-    const prevBestWeight = s.prBest[ex.id] || (prevSets.length ? Math.max(...prevSets.map(p => p.weight || 0)) : 0);
-    const prBadge  = prevBestWeight > 0
-      ? `<span class="pr-badge">🏅 PR ${prevBestWeight} kg</span>`
-      : '';
-    const prevHTML = prevSets.length
-      ? prevSets.map(p => `<span class="badge badge-surface">${p.reps}×${p.weight}kg${p.rpe ? ` @${p.rpe}` : ''}</span>`).join('')
-      : '<span style="font-size:0.75rem;color:var(--cream-dim);opacity:.6;">Première fois</span>';
-    const wuHTML   = wu.map(w => `<span class="badge badge-surface">${w.label} ${w.reps}×${w.w}kg</span>`).join('');
-    const methodBadge = method !== 'normal' ? `<span class="method-badge method-${method}">${ML[method]}</span>` : '';
+    // Store prev sets in state for appendSetRow
+    s.prevSetData = s.prevSetData || {};
+    s.prevSetData[ex.id] = prevSets;
+
+    const muscleChip = ex.muscle_group
+      ? `<span class="wo-muscle-chip">${ex.muscle_group}</span>` : '';
+    const wuText = wu.length ? wu.map(w => `${w.w}kg×${w.reps}`).join(' · ') : '';
 
     let methodHintHTML = '';
     if (method === 'superset' || method === 'giantset') {
-      const idx      = s.exerciseOrder.indexOf(ex.id);
-      const nextIds  = idx !== -1 ? s.exerciseOrder.slice(idx + 1, idx + (method === 'giantset' ? 3 : 2)) : [];
+      const idx   = s.exerciseOrder.indexOf(ex.id);
+      const nextIds = idx !== -1 ? s.exerciseOrder.slice(idx + 1, idx + (method === 'giantset' ? 3 : 2)) : [];
       const nextNames = nextIds.map(id => document.getElementById(`card-title-${id}`)?.textContent || '…');
-      const label    = method === 'giantset' ? `🔥 Enchaîne avec → ${nextNames.join(' • ') || '…'}` : `⚡ Enchaîne avec → ${nextNames[0] || '…'}`;
+      const label = method === 'giantset' ? `🔥 Enchaîne avec → ${nextNames.join(' • ') || '…'}` : `⚡ Enchaîne avec → ${nextNames[0] || '…'}`;
       methodHintHTML = `<div id="method-hint-${ex.id}" style="padding:0 16px 10px;"><span class="method-badge method-${method}">${label}</span></div>`;
     } else if (cfg.hint) {
       methodHintHTML = `<div style="padding:0 16px 10px;"><span class="method-badge method-${method}">${cfg.hint}</span></div>`;
@@ -137,36 +146,23 @@ window.WorkoutsRender = (() => {
         <div class="exercise-header-v2">
           <div style="display:flex;align-items:center;flex:1;min-width:0;gap:10px;">
             <div class="exercise-num-v2">${(exIdx || 0) + 1}</div>
-            <div style="min-width:0;">
-              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <p style="font-weight:600;color:var(--cream);font-size:0.9375rem;" id="card-title-${ex.id}">${ex.name}</p>
-                ${methodBadge}
-              </div>
-              <p style="font-size:0.75rem;color:var(--cream-dim);margin-top:2px;">${ex.muscle_group ? ex.muscle_group + ' · ' : ''}${re.sets}×${re.reps} @ ${re.weight}kg</p>
-            </div>
+            <p style="font-weight:600;color:var(--cream);font-size:0.9375rem;flex:1;min-width:0;" id="card-title-${ex.id}">${ex.name}</p>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            ${prBadge}
+            ${muscleChip}
             <button class="btn btn-icon" data-note-btn="${ex.id}" aria-label="Note" style="font-size:1rem;">📝</button>
           </div>
         </div>
-        <div style="padding:0 16px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
-          <span style="font-size:0.6875rem;color:var(--cream-dim);">Dernière fois :</span>
-          ${prevHTML}
-        </div>
-        ${wu.length ? `<div style="padding:0 16px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
-          <span style="font-size:0.6875rem;color:var(--cream-dim);">Échauffement :</span>
-          ${wuHTML}
-        </div>` : ''}
+        ${wuText ? `<div class="wo-warmup-strip">🔥 Échauffement : ${wuText}</div>` : ''}
         <div id="note-${ex.id}" style="display:none;padding:0 16px 10px;">
           <textarea class="input" rows="2" placeholder="Note…" data-note-for="${ex.id}" style="font-size:0.875rem;"></textarea>
         </div>
         <div class="sets-table-v2">
           <div class="sets-header-v2">
             <span style="text-align:center;">#</span>
+            <span style="text-align:center;">Poids</span>
             <span style="text-align:center;">Reps</span>
-            <span style="text-align:center;">Poids (kg)</span>
-            <span style="text-align:center;">RPE</span>
+            <span style="text-align:center;">Préc.</span>
             <span></span>
           </div>
           <div id="sets-${ex.id}" class="sets-list"></div>

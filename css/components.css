@@ -4697,6 +4697,124 @@ optgroup {
 }
 
 /* =============================================
+   WORKOUT SESSION V2 — HEADER + TIMER
+   ============================================= */
+
+.wo-session-top {
+  padding: 52px 16px 12px;
+}
+.wo-session-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.wo-back-btn {
+  width: 38px; height: 38px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--cream);
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-top: 4px;
+  transition: background 0.15s;
+}
+.wo-back-btn:hover { background: var(--bg-elevated); }
+.wo-routine-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent-primary);
+  margin-bottom: 4px;
+}
+.wo-session-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.75rem;
+  color: var(--cream);
+  line-height: 1;
+}
+
+/* Timer card */
+.wo-timer-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  box-shadow: var(--card-shadow);
+}
+.wo-timer-val {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #4ADE80;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wo-timer-sub {
+  font-size: 0.65rem;
+  color: var(--cream-dim);
+  margin-top: 3px;
+}
+.wo-pause-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--cream);
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.wo-pause-btn:hover { background: var(--bg-elevated); }
+.wo-finish-btn {
+  background: var(--accent-primary);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(200,98,46,0.4);
+  transition: filter 0.15s;
+}
+.wo-finish-btn:hover { filter: brightness(1.1); }
+
+/* Warmup inline strip */
+.wo-warmup-strip {
+  margin: 0 16px 10px;
+  background: rgba(200,98,46,0.12);
+  border: 1px solid rgba(200,98,46,0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+}
+
+/* Muscle group chip on exercise card */
+.wo-muscle-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cream-dim);
+  flex-shrink: 0;
+}
+
+/* =============================================
    MAQUETTE — WORKOUT EXERCISE CARD
    ============================================= */
 
@@ -4758,7 +4876,7 @@ optgroup {
   color: var(--accent-primary);
 }
 
-/* Sets table grid (maquette: 28px 1fr 1fr 1fr 36px) */
+/* Sets table grid: 32px | 1fr | 1fr | 1fr | 32px */
 .sets-table-v2 {
   border-top: 1px solid var(--border);
   padding: 10px 16px 14px;
@@ -4766,7 +4884,7 @@ optgroup {
 
 .sets-header-v2 {
   display: grid;
-  grid-template-columns: 28px 1fr 1fr 0.8fr 36px;
+  grid-template-columns: 32px 1fr 1fr 1fr 32px;
   gap: 8px;
   font-size: 0.625rem;
   font-weight: 600;
@@ -4779,36 +4897,57 @@ optgroup {
 
 .set-row-v2 {
   display: grid;
-  grid-template-columns: 28px 1fr 1fr 0.8fr 36px;
+  grid-template-columns: 32px 1fr 1fr 1fr 32px;
   gap: 8px;
   align-items: center;
   padding: 5px 2px;
   border-radius: 8px;
   margin-bottom: 3px;
   transition: background 0.15s;
+  border: 1px solid transparent;
 }
 
 .set-row-v2.warmup { opacity: 0.45; }
-.set-row-v2.done   { background: rgba(122,184,147,0.07); }
+.set-row-v2.done   { background: rgba(74,222,128,0.06); }
 .set-row-v2.current {
-  background: rgba(122,184,147,0.12);
-  border: 1px solid rgba(122,184,147,0.2);
+  background: rgba(200,98,46,0.08);
+  border-color: rgba(200,98,46,0.35);
 }
 
 .set-num-v2 {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.6875rem;
-  color: var(--cream-dim);
   font-weight: 600;
-  text-align: center;
+  color: var(--cream-dim);
+  justify-self: center;
+}
+.set-num-v2.done {
+  background: #4ADE80;
+  border-color: #4ADE80;
+  color: #0e0e0c;
+  font-weight: 700;
 }
 
 .set-num-v2.warmup-num { color: var(--accent-warm); }
+
+.set-prev-v2 {
+  font-size: 0.6875rem;
+  color: var(--cream-dim);
+  text-align: center;
+  opacity: 0.7;
+}
 
 .set-input-v2 {
   background: rgba(255,255,255,0.06);
   border: 1px solid var(--border);
   border-radius: 7px;
-  padding: 6px 6px;
+  padding: 6px 4px;
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--cream);
@@ -4819,22 +4958,27 @@ optgroup {
 }
 
 .set-row-v2.current .set-input-v2 {
-  border-color: rgba(122,184,147,0.4);
-  background: rgba(122,184,147,0.08);
+  border-color: rgba(200,98,46,0.45);
+  background: rgba(200,98,46,0.08);
+}
+.set-row-v2.done .set-input-v2 {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cream-dim);
 }
 
-.set-input-v2:focus { border-color: var(--accent); }
+.set-input-v2:focus { border-color: var(--accent-primary); }
 
 .btn-check-v2 {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 2px solid var(--border);
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
   justify-self: center;
@@ -4842,12 +4986,17 @@ optgroup {
 }
 
 .btn-check-v2.done {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: #4ADE80;
+  border-color: #4ADE80;
   color: #0e0e0c;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  box-shadow: 0 0 12px rgba(122,184,147,0.35);
+  box-shadow: 0 0 10px rgba(74,222,128,0.3);
+}
+.btn-check-v2.done.pr {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  box-shadow: 0 0 10px rgba(212,168,67,0.4);
 }
 
 /* Finish button gradient */

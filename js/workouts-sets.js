@@ -13,10 +13,14 @@ window.WorkoutsSets = (() => {
   function appendSetRow(exId, n, defaultReps, defaultWeight, isLast) {
     const list   = document.getElementById(`sets-${exId}`);
     if (!list) return;
-    const method      = S().methods[exId] || 'normal';
+    const s           = S();
+    const method      = s.methods[exId] || 'normal';
     const isAmrapLast = isLast && method === 'amrap';
     const baseReps    = M().getDefaultReps(method, defaultReps);
-    const rpePlaceholder = method === 'htfr' ? '9' : '8';
+
+    // Previous performance for this set number
+    const prevSet   = s.prevSetData?.[exId]?.[n - 1];
+    const prevValue = prevSet ? `${prevSet.reps}×${prevSet.weight}` : '—';
 
     const el = document.createElement('div');
     el.className = 'swipeable';
@@ -24,31 +28,30 @@ window.WorkoutsSets = (() => {
       <div class="swipe-delete-bg">🗑</div>
       <div class="swipe-content set-row-v2 current">
         <span class="set-num-v2">${n}</span>
-        <input type="number" class="input set-input-v2" value="${isAmrapLast ? '' : baseReps}"
-          min="1" max="999" inputmode="numeric" aria-label="Répétitions"
-          placeholder="${isAmrapLast ? 'max' : ''}">
-        <input type="number" class="input set-input-v2" value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
-        <input type="number" class="input set-input-v2" value="" min="1" max="10" step="0.5" inputmode="decimal" aria-label="RPE" placeholder="${rpePlaceholder}">
-        <button class="btn-check-v2${isAmrapLast ? ' amrap-btn' : ''}" aria-label="Valider">
-          ${isAmrapLast ? '∞' : '✓'}
-        </button>
+        <input type="number" class="input set-input-v2" data-input-type="weight"
+          value="${defaultWeight}" min="0" step="0.5" inputmode="decimal" aria-label="Poids">
+        <input type="number" class="input set-input-v2" data-input-type="reps"
+          value="${isAmrapLast ? '' : baseReps}" min="1" max="999" inputmode="numeric"
+          aria-label="Répétitions" placeholder="${isAmrapLast ? 'max' : '—'}">
+        <span class="set-prev-v2">${prevValue}</span>
+        <button class="btn-check-v2${isAmrapLast ? ' amrap-btn' : ''}" aria-label="Valider">○</button>
+        <input type="hidden" data-input-type="rpe" value="">
       </div>`;
     list.appendChild(el);
 
     M().initSwipe(el, () => { el.remove(); M().renumberRows(exId); });
 
     el.querySelector('.btn-check-v2').addEventListener('click', ev => {
-      const inputs  = el.querySelectorAll('.set-input-v2');
-      const rIn = inputs[0], wIn = inputs[1], rpeIn = inputs[2];
-      const reps    = parseInt(rIn.value) || 0;
-      const weight  = parseFloat(wIn.value) || 0;
-      const rpe     = parseFloat(rpeIn.value);
+      const rIn   = el.querySelector('[data-input-type="reps"]');
+      const wIn   = el.querySelector('[data-input-type="weight"]');
+      const rpeIn = el.querySelector('[data-input-type="rpe"]');
+      const reps   = parseInt(rIn.value) || 0;
+      const weight = parseFloat(wIn.value) || 0;
+      const rpe    = parseFloat(rpeIn.value);
 
       if (isAmrapLast && !reps) { showToast('Entre le nombre de répétitions max', 'error'); rIn.focus(); return; }
-      if (!isNaN(rpe) && (rpe < 1 || rpe > 10)) { showToast('Le RPE doit être entre 1 et 10', 'error'); rpeIn.focus(); return; }
 
-      const s   = S();
-      const arr = s.loggedSets[exId] || (s.loggedSets[exId] = []);
+      const arr   = s.loggedSets[exId] || (s.loggedSets[exId] = []);
       const found = arr.find(item => item.n === n);
       if (found) { found.reps = reps; found.weight = weight; found.rpe = isNaN(rpe) ? null : rpe; }
       else arr.push({ n, reps, weight, rpe: isNaN(rpe) ? null : rpe, methodTag: method });
@@ -57,22 +60,22 @@ window.WorkoutsSets = (() => {
       const isPR     = prevBest !== undefined && weight > prevBest;
       if (weight > (s.prBest[exId] || 0)) s.prBest[exId] = weight;
 
-      const row = el.querySelector('.swipe-content');
-      const btn = ev.currentTarget;
+      const row   = el.querySelector('.swipe-content');
+      const numEl = row.querySelector('.set-num-v2');
+      const btn   = ev.currentTarget;
       row.classList.remove('current');
       row.classList.add('done');
+      if (numEl) { numEl.textContent = '✓'; numEl.classList.add('done'); }
 
       if (isPR) {
         btn.textContent = '🏆';
-        btn.classList.add('done');
-        btn.style.background   = 'var(--color-gold,#f5a623)';
-        btn.style.borderColor  = 'var(--color-gold,#f5a623)';
+        btn.classList.add('done', 'pr');
         showToast(`🏆 Nouveau record ! ${weight} kg`, 'success', 3500);
         if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
       } else {
         btn.classList.add('done');
         btn.textContent = '✓';
-        showToast(`Série ${n} · ${reps}×${weight}kg${isNaN(rpe) ? '' : ` @${rpe}`}`, 'success', 1800);
+        showToast(`Série ${n} · ${reps}×${weight}kg`, 'success', 1800);
       }
       window.RestTimer?.start(window.Workouts.getMethodConfig(method).rest);
 
