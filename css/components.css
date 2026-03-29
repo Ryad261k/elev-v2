@@ -134,7 +134,21 @@
   opacity: 0.92;
 }
 
-/* No dot — active state handled via background pill */
+/* Top indicator bar on active tab */
+.nav-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 3px;
+  background: var(--accent-primary);
+  border-radius: 0 0 4px 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.nav-tab.active::before { opacity: 1; }
 .nav-tab::after { display: none; }
 .nav-tab.active::after { display: none; }
 
@@ -3637,8 +3651,8 @@ optgroup {
 .routine-card-v2:hover { border-color: rgba(255,255,255,0.18); }
 
 .routine-card-v2.featured {
-  background: linear-gradient(135deg, rgba(122,184,147,0.1), rgba(122,184,147,0.03));
-  border-color: rgba(122,184,147,0.25);
+  background: var(--bg-card);
+  border-color: rgba(200,98,46,0.3);
 }
 
 .routine-top {
@@ -3663,8 +3677,8 @@ optgroup {
 }
 
 .routine-card-v2.featured .routine-icon {
-  background: rgba(122,184,147,0.15);
-  border-color: rgba(122,184,147,0.3);
+  background: rgba(200,98,46,0.12);
+  border-color: rgba(200,98,46,0.25);
 }
 
 .routine-info { flex: 1; min-width: 0; }
@@ -3831,10 +3845,10 @@ optgroup {
 
 .cal-ring-fill {
   fill: none;
-  stroke: var(--accent-warm);
+  stroke: var(--accent-primary);
   stroke-width: 7;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 8px rgba(200,149,108,0.4));
+  filter: drop-shadow(0 0 8px rgba(200,98,46,0.5));
   transition: stroke-dashoffset 1s ease;
 }
 
@@ -4166,8 +4180,8 @@ optgroup {
 }
 
 .exercise-card-v2.active {
-  border-color: rgba(122,184,147,0.35);
-  background: rgba(122,184,147,0.05);
+  border-color: var(--accent-primary);
+  background: rgba(200,98,46,0.04);
 }
 
 .exercise-card-v2.done-card { opacity: 0.5; }
@@ -4207,9 +4221,9 @@ optgroup {
 }
 
 .exercise-card-v2.active .exercise-num-v2 {
-  background: rgba(122,184,147,0.2);
-  border-color: rgba(122,184,147,0.4);
-  color: var(--accent);
+  background: rgba(200,98,46,0.2);
+  border-color: rgba(200,98,46,0.5);
+  color: var(--accent-primary);
 }
 
 /* Sets table grid (maquette: 28px 1fr 1fr 1fr 36px) */
