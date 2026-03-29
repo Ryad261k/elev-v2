@@ -3,7 +3,7 @@
    Élev v2 — Fonctionne en local ET sur GitHub Pages (/elev-v2/)
    ============================================ */
 
-const CACHE_VERSION = 'elev-v2-cache-v10';
+const CACHE_VERSION = 'elev-v2-cache-v11';
 
 // Détecte le base path dynamiquement (fonctionne partout)
 const BASE = self.location.pathname.replace(/\/sw\.js$/, '');
