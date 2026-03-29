@@ -6,6 +6,12 @@
 window.History = (() => {
 
   /* ------------------------------------------
+     STATE
+     ------------------------------------------ */
+  let _calYear  = new Date().getFullYear();
+  let _calMonth = new Date().getMonth(); // 0-based
+
+  /* ------------------------------------------
      SUPABASE
      ------------------------------------------ */
   async function fetchSessions() {
@@ -60,12 +66,8 @@ window.History = (() => {
     return streak;
   }
 
-  function thisWeekCount(dates) {
-    const now    = new Date();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    const monStr = monday.toISOString().slice(0, 10);
-    return dates.filter(d => d >= monStr).length;
+  function totalVolume(sessions) {
+    return sessions.reduce((t, s) => t + sessionVolume(s), 0);
   }
 
   /* ------------------------------------------
@@ -78,7 +80,7 @@ window.History = (() => {
   }
 
   function fmtDate(iso) {
-    const d    = new Date(iso);
+    const d     = new Date(iso);
     const today = new Date().toISOString().slice(0, 10);
     const yest  = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const date  = iso.slice(0, 10);
@@ -93,76 +95,72 @@ window.History = (() => {
     return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
 
+  function fmtVol(v) {
+    if (v >= 1000) return `${(v / 1000).toFixed(1)}t`;
+    return `${v} kg`;
+  }
+
   /* ------------------------------------------
-     RENDU MINI-HEATMAP (4 semaines)
+     CALENDRIER MENSUEL
      ------------------------------------------ */
-  function renderHeatmap(dates) {
-    const dateSet = new Set(dates);
-    const cells   = [];
-    const today   = new Date();
-    for (let i = 27; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const str = d.toISOString().slice(0, 10);
-      cells.push({ str, active: dateSet.has(str), dow: d.getDay() });
+  function renderCalendar(dateSet, streak) {
+    const today = new Date().toISOString().slice(0, 10);
+    const year  = _calYear;
+    const month = _calMonth;
+
+    const MONTH_NAMES = [
+      'Janvier','Février','Mars','Avril','Mai','Juin',
+      'Juillet','Août','Septembre','Octobre','Novembre','Décembre'
+    ];
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay  = new Date(year, month + 1, 0);
+    const totalDays = lastDay.getDate();
+    // Monday-first: getDay() returns 0=Sun,1=Mon,...6=Sat → convert
+    const startDow = (firstDay.getDay() + 6) % 7; // 0=Mon, 6=Sun
+
+    const dayHeads = ['L','M','M','J','V','S','D'].map(d =>
+      `<div class="hist-cal-day-head">${d}</div>`
+    ).join('');
+
+    let cells = '';
+    // empty cells before first day
+    for (let i = 0; i < startDow; i++) {
+      cells += `<div class="hist-cal-day empty"><div class="hist-cal-day-num"></div></div>`;
+    }
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const hasSess = dateSet.has(dateStr);
+      const isToday = dateStr === today;
+      const cls = `hist-cal-day${hasSess ? ' has-session' : ''}${isToday ? ' today' : ''}`;
+      cells += `
+        <div class="${cls}">
+          <div class="hist-cal-day-num">${d}</div>
+          ${hasSess && !isToday ? '<div class="hist-cal-dot"></div>' : ''}
+        </div>`;
     }
 
-    const days = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-    return `
-      <div class="heatmap-grid">
-        ${cells.map(c => `
-          <div class="heatmap-cell ${c.active ? 'heatmap-active' : ''}"
-               title="${c.str}"></div>
-        `).join('')}
-      </div>
-      <div class="heatmap-legend">
-        <span>Il y a 4 sem.</span>
-        <span>Aujourd'hui</span>
-      </div>`;
-  }
-
-  /* ------------------------------------------
-     RENDU CARTE SESSION
-     ------------------------------------------ */
-  function sessionCard(s) {
-    const name  = s.routine?.name || s.notes || 'Autre activité';
-    const sets  = workSets(s).length;
-    const vol   = sessionVolume(s);
-    const dur   = sessionDuration(s);
-    const isWorkout = !!s.routine;
+    const streakLine = streak > 0
+      ? `<div class="hist-cal-streak">🔥 Streak actuel : <strong>${streak} jour${streak > 1 ? 's' : ''}</strong></div>`
+      : '';
 
     return `
-      <div class="card history-card">
-        <div class="flex items-center justify-between" style="margin-bottom:8px;">
-          <div>
-            <p class="list-item-title">${name}</p>
-            <p class="card-subtitle">${fmtDate(s.started_at)} · ${fmtTime(s.started_at)}</p>
-          </div>
-          <span class="badge ${isWorkout ? 'badge-accent' : 'badge-surface'}">${isWorkout ? '💪' : '🏃'}</span>
+      <div class="hist-calendar-card">
+        <div class="hist-cal-nav">
+          <button class="hist-cal-arrow" id="hist-cal-prev">‹</button>
+          <span class="hist-cal-month">${MONTH_NAMES[month]} ${year}</span>
+          <button class="hist-cal-arrow" id="hist-cal-next">›</button>
         </div>
-        ${isWorkout ? `
-          <div class="stat-row">
-            <div class="stat-chip">
-              <p class="stat-chip-value">${fmtDuration(dur)}</p>
-              <p class="stat-chip-label">Durée</p>
-            </div>
-            <div class="stat-chip">
-              <p class="stat-chip-value">${sets}</p>
-              <p class="stat-chip-label">Sets</p>
-            </div>
-            <div class="stat-chip">
-              <p class="stat-chip-value">${vol >= 1000 ? (vol / 1000).toFixed(1) + 't' : vol + 'kg'}</p>
-              <p class="stat-chip-label">Volume</p>
-            </div>
-          </div>` : `
-          <p class="card-subtitle" style="margin-top:4px;">
-            ${dur !== null ? `${dur} min` : ''}
-          </p>`}
+        <div class="hist-cal-grid">
+          ${dayHeads}
+          ${cells}
+        </div>
+        ${streakLine}
       </div>`;
   }
 
   /* ------------------------------------------
-     PRs & VOLUME
+     RECORDS
      ------------------------------------------ */
   async function fetchAllSets() {
     const { data: sessions } = await DB.from('sessions')
@@ -172,15 +170,6 @@ window.History = (() => {
     const { data } = await DB.from('session_sets')
       .select('exercise_id, reps, weight, exercise:exercises(name)')
       .in('session_id', ids).eq('is_warmup', false).gt('weight', 0);
-    return data || [];
-  }
-
-  async function fetchWeeklyVolumeSessions() {
-    const since = new Date(Date.now() - 56 * 86400000).toISOString();
-    const { data } = await DB.from('sessions')
-      .select('started_at, session_sets(reps, weight, is_warmup)')
-      .eq('user_id', DB.userId()).not('ended_at', 'is', null)
-      .gte('started_at', since);
     return data || [];
   }
 
@@ -199,58 +188,28 @@ window.History = (() => {
     }).sort((a, b) => b.orm - a.orm).slice(0, 8);
   }
 
-  function calcWeeklyVol(sessions) {
-    const weeks = {};
-    sessions.forEach(sess => {
-      const d = new Date(sess.started_at);
-      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-      const key = d.toISOString().slice(0, 10);
-      const vol = (sess.session_sets || [])
-        .filter(s => !s.is_warmup)
-        .reduce((v, s) => v + (s.reps || 0) * (s.weight || 0), 0);
-      weeks[key] = (weeks[key] || 0) + vol;
-    });
-    const result = [];
-    for (let i = 7; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - i * 7);
-      const key = d.toISOString().slice(0, 10);
-      result.push({ key, label: i === 0 ? 'Sem.' : `S-${i}`, vol: weeks[key] || 0 });
-    }
-    return result;
-  }
+  /* ------------------------------------------
+     SESSION CARD
+     ------------------------------------------ */
+  function sessionCard(s) {
+    const name    = s.routine?.name || s.notes || 'Autre activité';
+    const sets    = workSets(s).length;
+    const vol     = sessionVolume(s);
+    const dur     = sessionDuration(s);
 
-  function renderVolChart(weeks) {
-    const maxV = Math.max(...weeks.map(w => w.vol), 1);
-    const W = 320, H = 110, pL = 4, pR = 4, pT = 8, pB = 24;
-    const cW = W - pL - pR, cH = H - pT - pB;
-    const bW = cW / weeks.length;
-    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;" aria-label="Volume hebdo">
-      ${weeks.map((w, i) => {
-        const h  = Math.max((w.vol / maxV) * cH, w.vol > 0 ? 2 : 0);
-        const x  = pL + i * bW + 2;
-        const y  = pT + cH - h;
-        return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bW - 4).toFixed(1)}" height="${h.toFixed(1)}"
-                      fill="${w.vol > 0 ? 'var(--accent)' : 'var(--bg-surface)'}" rx="3"/>
-                <text x="${(x + (bW - 4) / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle"
-                      font-size="8" fill="var(--cream-dim)" font-family="sans-serif">${w.label}</text>`;
-      }).join('')}
-    </svg>`;
-  }
-
-  function renderPRs(prs) {
-    if (!prs.length) return '<p class="card-subtitle" style="text-align:center;padding:8px;">Lance tes premières séances pour voir tes records !</p>';
-    return prs.map(p => `
-      <div class="flex items-center justify-between" style="padding:8px 0;border-bottom:1px solid var(--border);">
-        <div>
-          <p style="font-size:0.9375rem;font-weight:500;color:var(--cream);">${p.name}</p>
-          <p class="card-subtitle">${p.bestReps}×${p.maxWeight} kg</p>
+    return `
+      <div class="hist-session-card">
+        <div class="hist-session-body">
+          <div class="hist-session-name">${name}</div>
+          <div class="hist-session-date">${fmtDate(s.started_at)} · ${fmtTime(s.started_at)}</div>
+          <div class="hist-session-chips">
+            ${dur !== null ? `<span class="hist-session-chip">⏱ ${fmtDuration(dur)}</span>` : ''}
+            ${sets > 0 ? `<span class="hist-session-chip">🏋 ${sets} sets</span>` : ''}
+            ${vol > 0   ? `<span class="hist-session-chip">📦 ${fmtVol(vol)}</span>` : ''}
+          </div>
         </div>
-        <div style="text-align:right;">
-          <p style="font-size:1.125rem;font-weight:700;color:var(--accent-primary);">${p.orm} kg</p>
-          <p class="card-subtitle">1RM est.</p>
-        </div>
-      </div>`).join('');
+        <span class="hist-session-arrow">›</span>
+      </div>`;
   }
 
   /* ------------------------------------------
@@ -261,21 +220,15 @@ window.History = (() => {
       <div class="skeleton-card">
         <div class="skeleton skeleton-line" style="width:40%;"></div>
         <div class="skeleton skeleton-line" style="width:80%;"></div>
-        <div class="skeleton skeleton-line-sm"></div>
       </div>
       <div class="skeleton-card">
         <div class="skeleton skeleton-line" style="width:55%;"></div>
         <div class="skeleton skeleton-line" style="width:90%;"></div>
-        <div class="skeleton skeleton-line-sm"></div>
-      </div>
-      <div class="skeleton-card">
-        <div class="skeleton skeleton-line" style="width:35%;"></div>
-        <div class="skeleton skeleton-line" style="width:75%;"></div>
       </div>`;
   }
 
   /* ------------------------------------------
-     RENDU PRINCIPAL
+     RENDER PRINCIPAL
      ------------------------------------------ */
   async function render() {
     const cnt = document.getElementById('history-content');
@@ -284,73 +237,92 @@ window.History = (() => {
     showSkeleton(cnt);
 
     try {
-      const [sessions, allDates, allSets, volSessions] = await Promise.all([
-        fetchSessions(), fetchAllDates(), fetchAllSets(), fetchWeeklyVolumeSessions()
+      const [sessions, allDates, allSets] = await Promise.all([
+        fetchSessions(), fetchAllDates(), fetchAllSets()
       ]);
-      const prs   = calcPRs(allSets);
-      const weeks = calcWeeklyVol(volSessions);
 
-      const streak  = calcStreak(allDates);
-      const week    = thisWeekCount(allDates);
-      const total   = allDates.length;
+      const dateSet  = new Set(allDates);
+      const prs      = calcPRs(allSets);
+      const streak   = calcStreak(allDates);
+      const total    = allDates.length;
+      const totVol   = totalVolume(sessions);
+
+      const volLabel = totVol >= 1000
+        ? `${(totVol / 1000).toFixed(0)} t`
+        : `${totVol} kg`;
 
       cnt.innerHTML = `
-        <!-- Stats rapides -->
-        <div class="stat-row" style="margin-bottom:16px;">
-          <div class="stat-chip">
-            <p class="stat-chip-value">${week}</p>
-            <p class="stat-chip-label">Cette semaine</p>
-          </div>
-          <div class="stat-chip">
-            <p class="stat-chip-value">${streak}${streak > 0 ? ' 🔥' : ''}</p>
-            <p class="stat-chip-label">Jours consécutifs</p>
-          </div>
-          <div class="stat-chip">
-            <p class="stat-chip-value">${total}</p>
-            <p class="stat-chip-label">Total séances</p>
+        <!-- Header -->
+        <div class="hist-header">
+          <div>
+            <div class="hist-eyebrow">Journal</div>
+            <div class="hist-title">Historique</div>
           </div>
         </div>
 
-        <!-- Heatmap 4 semaines -->
-        <div class="card" style="margin-bottom:16px;">
-          <div class="section-header" style="margin-bottom:8px;">
-            <h2 class="section-title">Activité</h2>
-            <span class="card-subtitle">4 semaines</span>
+        <!-- Stats globales -->
+        <div class="hist-stats-row">
+          <div class="hist-stat-chip coral">
+            <div class="hist-stat-chip-val">${total}</div>
+            <div class="hist-stat-chip-label">séances</div>
           </div>
-          ${renderHeatmap(allDates)}
+          <div class="hist-stat-chip amber">
+            <div class="hist-stat-chip-val">${streak > 0 ? '🔥 ' + streak + 'j' : '–'}</div>
+            <div class="hist-stat-chip-label">streak</div>
+          </div>
+          <div class="hist-stat-chip blue">
+            <div class="hist-stat-chip-val">${volLabel}</div>
+            <div class="hist-stat-chip-label">volume total</div>
+          </div>
         </div>
 
-        <!-- Volume hebdo -->
-        <div class="card" style="margin-bottom:16px;">
-          <div class="section-header" style="margin-bottom:4px;">
-            <h2 class="section-title">Volume</h2>
-            <span class="card-subtitle">8 semaines</span>
-          </div>
-          ${renderVolChart(weeks)}
+        <!-- Calendrier -->
+        <div id="hist-cal-container">
+          ${renderCalendar(dateSet, streak)}
         </div>
 
-        <!-- Records -->
-        <div class="card" style="margin-bottom:16px;">
-          <div class="section-header" style="margin-bottom:4px;">
-            <h2 class="section-title">Records</h2>
-            <span class="card-subtitle" style="color:var(--color-gold);">🏆 1RM estimé (Epley)</span>
+        <!-- Dernières séances -->
+        ${sessions.length ? `
+          <div class="hist-section-label" style="margin-top:16px;">Dernières séances</div>
+          ${sessions.slice(0, 10).map(sessionCard).join('')}
+        ` : `
+          <div class="empty-state">
+            <span class="empty-state-icon">🏋️</span>
+            <p class="empty-state-title">Aucune séance</p>
+            <p class="empty-state-text">Lance ta première séance !</p>
           </div>
-          ${renderPRs(prs)}
-        </div>
+        `}
 
-        <!-- Liste séances -->
-        <div class="section-header">
-          <h2 class="section-title">Séances</h2>
-          <span class="card-subtitle">${sessions.length} entrées</span>
-        </div>
-        ${sessions.length
-          ? sessions.map(sessionCard).join('')
-          : `<div class="empty-state">
-               <span class="empty-state-icon">🏋️</span>
-               <p class="empty-state-title">Aucune séance</p>
-               <p class="empty-state-text">Lance ta première séance !</p>
-             </div>`}
+        <!-- Records perso -->
+        ${prs.length ? `
+          <div class="hist-section-label" style="margin-top:16px;">Records personnels</div>
+          <div class="hist-pr-grid" style="margin-bottom:80px;">
+            ${prs.map(p => `
+              <div class="hist-pr-card">
+                <span class="hist-pr-icon">🏆</span>
+                <div class="hist-pr-info">
+                  <div class="hist-pr-name">${p.name}</div>
+                  <div class="hist-pr-weight">${p.maxWeight} kg</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        ` : ''}
       `;
+
+      // Calendar navigation
+      cnt.addEventListener('click', e => {
+        if (e.target.id === 'hist-cal-prev') {
+          _calMonth--;
+          if (_calMonth < 0) { _calMonth = 11; _calYear--; }
+          document.getElementById('hist-cal-container').innerHTML = renderCalendar(dateSet, streak);
+        }
+        if (e.target.id === 'hist-cal-next') {
+          _calMonth++;
+          if (_calMonth > 11) { _calMonth = 0; _calYear++; }
+          document.getElementById('hist-cal-container').innerHTML = renderCalendar(dateSet, streak);
+        }
+      }, { once: false });
+
     } catch (err) {
       console.error('[History] render:', err);
       cnt.innerHTML = `<div class="empty-state">
@@ -361,7 +333,12 @@ window.History = (() => {
     }
   }
 
-  function init() { render(); }
+  function init() {
+    // Reset calendar to current month on each visit
+    _calYear  = new Date().getFullYear();
+    _calMonth = new Date().getMonth();
+    render();
+  }
 
   document.addEventListener('tabchange', e => { if (e.detail.tab === 'history') init(); });
 
