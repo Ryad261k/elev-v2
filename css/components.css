@@ -58,7 +58,7 @@
 
 .nav-tab.active {
   color: var(--accent-primary);
-  background: rgba(45,80,22,0.1);
+  background: rgba(200,98,46,0.1);
 }
 
 .nav-tab.active .nav-label {
@@ -146,12 +146,12 @@
 }
 
 [data-theme="dark"] .nav-tab.active {
-  color: #f5f0e8;
-  background: rgba(122,184,147,0.18);
+  color: var(--accent-primary);
+  background: rgba(200,98,46,0.15);
 }
 
 [data-theme="dark"] .nav-tab.active .nav-label {
-  color: #f5f0e8;
+  color: var(--accent-primary);
 }
 
 /* ==========================================
@@ -3570,14 +3570,14 @@ optgroup {
   text-transform: none;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 20px rgba(122,184,147,0.35);
+  box-shadow: 0 4px 20px rgba(200,98,46,0.35);
   transition: transform 0.15s, box-shadow 0.15s;
   flex-shrink: 0;
 }
 
 .btn-start-pill:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 28px rgba(122,184,147,0.45);
+  box-shadow: 0 6px 28px rgba(200,98,46,0.45);
 }
 
 

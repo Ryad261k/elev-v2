@@ -3,40 +3,44 @@
    Élev v2
    ============================================ */
 
-/* --- Variables — Light Theme (default — prompt ÉLEV) --- */
+/* --- Variables — Light Theme (default) --- */
 :root {
   /* Backgrounds */
-  --bg-dark:     #F0EDE6;
-  --bg-card:     #FFFFFF;
-  --bg-surface:  #EAE7DF;
+  --bg-dark:     #f4efe6;
+  --bg-card:     #fdfaf5;
+  --bg-surface:  #f0ebe0;
+  --bg-elevated: #ffffff;
 
   /* Text */
-  --cream:       #1A1A1A;
-  --cream-dim:   #8A8A8A;
+  --cream:       #1a1814;
+  --cream-dim:   #6b6458;
 
-  /* Accent */
-  --accent:      #4CAF7D;
-  --accent-warm: #F0A868;
-  --accent-blue: #6DB8E5;
+  /* Accent principal — terracotta */
+  --accent:           #4ADE80;
+  --accent-warm:      #F5A623;
+  --accent-blue:      #5B9BF5;
+  --accent-mauve:     #C084FC;
+  --accent-green:     #4ADE80;
 
   /* CTA & Semantic */
-  --accent-primary:      #2D5016;
-  --accent-primary-soft: #E8F0E0;
+  --accent-primary:      #C8622E;
+  --accent-primary-soft: rgba(200,98,46,0.1);
   --btn-primary-text:    #FFFFFF;
 
   /* Border & Shadows */
-  --border:      #EAE7DF;
-  --card-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  --border:      rgba(0,0,0,0.07);
+  --border-strong: rgba(0,0,0,0.13);
+  --card-shadow: 0 2px 16px rgba(0,0,0,0.08);
 
   /* Semantic colors */
   --color-danger:  #C0392B;
   --color-warning: #E67E22;
-  --color-gold:    #C9A84C;
-  --color-info:    #5B8DB8;
-  --color-carbs:   #8b9ec8;
+  --color-gold:    #D4A843;
+  --color-info:    #5B9BF5;
+  --color-carbs:   #5B9BF5;
 
   /* Layout */
-  --radius:      16px;
+  --radius:      18px;
   --font-serif:  'DM Serif Display', Georgia, serif;
   --font-sans:   'DM Sans', system-ui, sans-serif;
   --nav-height:  74px;
@@ -53,20 +57,24 @@
 /* --- Dark theme explicit --- */
 [data-theme="dark"] {
   --bg-dark:     #0e0e0c;
-  --bg-card:     rgba(255,255,255,0.06);
-  --bg-surface:  rgba(255,255,255,0.04);
-  --cream:       #f5f0e8;
-  --cream-dim:   #a89f91;
-  --accent:      #7AB893;
-  --accent-warm: #c8956c;
-  --accent-blue: #8b9ec8;
-  --accent-primary:      #7AB893;
-  --accent-primary-soft: rgba(122, 184, 147, 0.15);
-  --btn-primary-text:    #0e0e0c;
-  --border:      rgba(255,255,255,0.09);
-  --card-shadow: none;
-  --color-carbs: #8b9ec8;
-  --radius:      16px;
+  --bg-card:     #1a1a16;
+  --bg-surface:  #222220;
+  --bg-elevated: #2a2a26;
+  --cream:       #f0ebe0;
+  --cream-dim:   #8a8478;
+  --accent:           #4ADE80;
+  --accent-warm:      #F5A623;
+  --accent-blue:      #5B9BF5;
+  --accent-mauve:     #C084FC;
+  --accent-green:     #4ADE80;
+  --accent-primary:      #C8622E;
+  --accent-primary-soft: rgba(200,98,46,0.15);
+  --btn-primary-text:    #ffffff;
+  --border:        rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.12);
+  --card-shadow:   0 2px 20px rgba(0,0,0,0.4);
+  --color-carbs:   #5B9BF5;
+  --color-gold:    #D4A843;
 }
 
 /* --- Prevent flash on load --- */
@@ -94,12 +102,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.25s ease, color 0.25s ease;
   background-image:
-    radial-gradient(circle at top, rgba(232,240,224,0.9), rgba(240,237,230,0) 40%),
-    linear-gradient(180deg, rgba(255,255,255,0.45), rgba(240,237,230,0));
+    radial-gradient(circle at top, rgba(244,239,230,0.95), rgba(240,235,224,0) 50%),
+    linear-gradient(180deg, rgba(255,255,255,0.3), rgba(240,235,224,0));
 }
 
 [data-theme="dark"] body {
-  background-image: radial-gradient(ellipse at top left, rgba(122,184,147,0.05) 0%, transparent 50%);
+  background-image: radial-gradient(ellipse at top left, rgba(200,98,46,0.04) 0%, transparent 50%);
 }
 
 /* --- Typography --- */
